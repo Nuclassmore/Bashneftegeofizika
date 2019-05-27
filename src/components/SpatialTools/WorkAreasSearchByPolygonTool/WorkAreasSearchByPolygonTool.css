@@ -1,0 +1,220 @@
+.WorkArea__ToolForm{
+	width: 400px;
+	background-color: rgba(0,0,0,0.8);
+	border-radius: 10px;
+	position: absolute;
+	box-shadow: 0 0 30px rgba(0,0,0,0.5);
+	z-index: 99;
+	top: 100px;
+  left: 50px;
+  text-align: center;
+}
+.WorkArea__ToolForm h4{
+	margin: 0 0 5px 0;
+	font-size: 24px;
+	display: inline-block;
+	user-select: none;
+}
+.Form__input{
+  outline: none;
+	border-radius: 5px;
+	padding: 5px;
+  height: 20px;
+  border: 1px solid #ccc;
+	width: calc(100% - 50px);
+	margin: 20px;
+}
+.Form__input:focus{
+  outline: none;
+}
+.Form__button{
+  display: inline-block;
+  width: max-content;
+  padding: 0 10px;
+  margin: 0 10px;
+  height: 30px;
+  font-size: 18px;
+  background-color: transparent;
+  border: 2px solid;
+  border-color: rgba(96, 102, 114, 0.6);	
+  border-radius: 6px;	
+  cursor :pointer;
+  user-select: none; 
+  font-weight: 500;
+}
+.Form__button:active{
+	background-color: rgba(96, 102, 114, 0.6);
+}
+.Error__message{
+  color: red;
+  font-size: 20px;
+}
+.Form__Close{
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+  margin: 10px 10px 0 0;
+  float: right;
+  cursor: pointer;
+}
+.Form__Close:active:before{
+  background: rgb(96, 102, 114);;
+}
+.Form__Close:active:after{
+  background: rgb(96, 102, 114);;
+}
+.Form__Close:before{
+	content: '';
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  top: 50%;
+  left: 0;
+  margin-top: -1px;
+  background: white;
+  border-radius: 5px;
+  transform: rotate(45deg);
+}
+.Form__Close:after{
+	content: '';
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  top: 50%;
+  left: 0;
+  margin-top: -1px;
+  background: white;
+  border-radius: 5px;
+  transform: rotate(-45deg);
+}
+.Form__Buttons__Block{
+  margin: 20px 0 20px 0;
+  display: block;
+  bottom: 20px;
+  align-content: center;  
+  width: inherit;
+}
+.WorkArea__Point td{
+  width: 45%;
+  border: 1px solid white;
+}
+
+.WorkArea__Point td:last-child{
+  font-size: 25px
+}
+
+.WorkArea__Point td:last-child:hover{
+  background-color: rgba(96, 102, 114, 0.3);
+  cursor: pointer;
+}
+
+.WorkArea__Point{
+  width: 100%;
+}
+
+.WorkArea__PointCollection table{
+  width: 100%;
+  font-size: 14px;
+  border: 1px solid white;
+}
+
+.WorkArea__PointCollection{
+  height: 150px;
+  border: 2px solid rgba(96, 102, 114, 0.6);	
+  width: 90%;
+  margin-left:5%;
+  overflow: scroll;
+}
+
+.WorkArea__AddPoint input{
+  outline: none;
+  width: 20%;
+  border-radius: 5px;
+	padding: 5px;
+  height: 20px;
+  border: 1px solid #ccc;
+  margin: 2px;
+}
+
+.WorkArea__ChooseLayers{
+
+}
+
+.WorkArea__SelectBox{
+  margin: 10px 20px;
+  display: block;
+  width: calc(100% - 40px);
+  height: 34px;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  color: #555;
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+  -webkit-transition: border-color ease-in-out .15s,-webkit-box-shadow ease-in-out .15s;
+  -o-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+  transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+}
+
+.WorkArea__AddPoint{
+  margin: 10px;
+}
+
+.collapsableLabel{
+  width: calc(100% - 20px);
+  font-size: 20px;
+  padding:5px 0 5px 20px;
+  text-align: left;
+  float: left;
+  margin-top: 10px;
+}
+
+.select__Label{
+  width: calc(100% - 20px);
+  font-size: 20px;
+  padding:5px 0 5px 20px;
+  text-align: left;
+  float: left;
+  margin-top: 10px;
+}
+
+.collapsableLabel:hover{
+  background-color: rgba(96, 102, 114, 0.3);
+  cursor: pointer;
+}
+
+.collapsableBody{
+  height: auto;
+  width: 100%;
+  padding: 10px 0;
+  display: inline-block;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.collapsableBody table{
+  width: 100%;
+}
+
+.collapsableLabel:before {
+  font-family: 'Glyphicons Halflings';
+  content: "\25bc";
+  float: right;
+  margin: 0 20px 0 0;
+  transition: all 0.5s;
+}
+.collapsableLabel:before.active {
+ -webkit-transform: rotate(180deg);
+ -moz-transform: rotate(180deg);
+ transform: rotate(180deg);
+} 
+
+.WorkArea__backtext{
+  font-size: 18px;
+}

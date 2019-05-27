@@ -1,0 +1,58 @@
+.Signin__Form{
+width: 400px;
+height: 300px;
+background-color: rgba(0,0,0,0.8);
+border-radius: 10px;
+position: absolute;
+left: calc(50% - 200px);
+top: calc(50% - 150px);
+color: white;
+	
+}
+
+.Signin__Form h4{
+font-size: 24px;
+text-align: center;
+margin: 20px;
+}
+
+.Signin{
+background-color: #2BDBE9;
+width: 100vw;
+height: 100vh;
+}
+
+.Signin__input{
+border-radius: 5px;
+padding: 5px;
+height: 20px;
+width: calc(100% - 50px);
+margin: 10px 20px;
+}
+.Signin__input:focus{
+outline: none;
+}
+
+.Signin__Label{
+margin:10px 20px;
+}
+
+.Signin__button{
+  text-align: center;
+  left: calc(50% - 37.5px);
+  position: absolute;
+  bottom: 20px;
+  width: 75px;
+  height: 30px;
+  font-size: 18px;
+  background-color: transparent;
+  border: 2px solid;
+  border-color: rgba(96, 102, 114, 0.6);	
+  border-radius: 6px;	
+  cursor :pointer;
+  user-select: none; 
+  font-weight: 500;
+}
+.Signin__button:active{
+	background-color: rgb(96, 102, 114);
+}

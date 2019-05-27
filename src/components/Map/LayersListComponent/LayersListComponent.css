@@ -1,0 +1,67 @@
+.LayersList__Block{
+    width: 300px;
+    height: 90%;
+    top: 60px !important;
+    right: 10px;
+	background-color: rgba(0,0,0,0.8);
+	border-radius: 10px;
+	position: absolute;
+	box-shadow: 0 0 30px rgba(0,0,0,0.5);
+	z-index: 99;
+	top: 0;
+    text-align: center;
+}
+
+.LayersList__Item{
+	display: flex;
+}
+
+.LayersList__Label{
+	display: inline-block;
+	height: 40px;
+	text-align: left;
+	word-break: break-all;
+	vertical-align: middle;
+	font-size: 14px;
+	font-weight: 500;
+	width: calc(100% - 80px);
+}
+
+.LayersList__Label span{
+	vertical-align: middle;
+    line-height: 40px;
+}
+
+.LayersList__TableIcon{
+	display: inline-block;
+	width: 40px;
+	height: 40px;
+	background-image: url("../../../assets/baseline_table_chart_white_18dp.png");
+	background-repeat: no-repeat;
+	background-position: center;
+	cursor: pointer;
+}
+
+.LayersList__InnerBlock{
+	height: 100%;
+	overflow-y: auto;
+}
+
+.LayersList__Checkbox{
+	height: 40px;
+	width: 40px;
+    display: inline-block;
+}
+
+.LayersList__Checkbox input{
+	margin: 13.5px 0 0 13.5px !important;
+	display: block;
+}
+
+.LayersList__Title{
+	padding: 10px;
+	border-radius: 10px 10px 0 0;
+	border: 0px solid;
+	background-color: rgba(96, 102, 114, 0.5);
+	font-size: 24px;
+}

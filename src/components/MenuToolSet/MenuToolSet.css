@@ -1,0 +1,36 @@
+.Form{
+	color: black;
+	width: 200px;
+    height: min-content;
+    background: white;
+    position: absolute;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    z-index: 100;
+    margin: 50px 0 0 100px;
+}
+.Form__result{
+	margin: 10px;
+	word-wrap: break-word;
+}
+.Menu__itemtitle{
+	display: flex;
+	width: calc(100% - 20px);
+	background-color: rgba(96, 102, 114, 0.1);
+	font-weight: 600;
+	padding: 12px 10px;	
+}
+.Menu__item{
+	width: 100%;
+	height: min-content;
+	cursor: pointer;
+	margin: 0;
+	padding: 20px 0;
+}
+.Menu__item h4{
+	margin: 0;
+}
+.Menu__item:hover{
+	width: 100%;
+	height: min-content;
+	background-color: rgba(0,0,0,0.2);
+}
