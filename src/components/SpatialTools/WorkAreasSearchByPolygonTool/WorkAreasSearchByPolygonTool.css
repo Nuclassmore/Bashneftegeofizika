@@ -218,3 +218,45 @@
 .WorkArea__backtext{
   font-size: 18px;
 }
+
+.WorkArea__ResultBottomLeft{
+  position: fixed;
+  bottom: 20px;
+  width: 400px;
+  height: 56px;
+  background-color: rgba(0,0,0,0.8);
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  transition: 2s left;
+  max-height: max-content;
+}
+
+.WorkArea__ResultBottomLeft h5{
+  font-size: 16px;
+  margin: 20px 0;
+}
+
+.WorkArea__ResultBottomLeft span{
+  font-size: 14px;
+  float: left;
+  padding: 0 10px 10px;
+}
+
+.WorkArea__ResultBottomLeft div{
+  margin: 0 0 20px 0;
+}
+
+.Form__FullScreen{
+  position: absolute;
+  padding: 0 !important;
+  display: inline-block;
+  right: 0;
+	width: 20px;
+  height: 20px;
+  margin: 10px 10px 0 0 ;
+	background-image: url("../../../assets/expand.png");
+	background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+	cursor: pointer;
+}

@@ -16,7 +16,10 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             latitude: "",
             longitude: "",
             collapseMethod: "CoordsMethod",
-            selectValue: "select"
+            selectValue: "select",
+            resultOpenModal: false,
+            lengthSumm: 0,
+            allfeatures: []
 		}
         this.getAllFeatures = getAllFeatures.bind(this);
         this.closeThis = this.closeThis.bind(this);
@@ -30,6 +33,8 @@ export default class WorkAreasSearchByPolygonTool extends Component {
         this.removeGraphic = this.removeGraphic.bind(this);
         this.convertCoords = this.convertCoords.bind(this);
         this.onChangeSelect = this.onChangeSelect.bind(this);
+        this.openModalCenter = this.openModalCenter.bind(this);
+        this.featureGet = this.featureGet.bind(this);
     }
 
     componentDidMount(){
@@ -76,11 +81,18 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                             {this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer')) return <option key={index} value={index}> {layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', '') } </option>})}
                         </select>
                     </div>
-                {/* <input className="Form__input" value={this.state.input} onChange={this.handleChange} placeholder="11.11,22.22;33.44,55.66;77.88,99.00;11.11,22.22"/> */}
-                {this.state.showError && <span className="Error__message">*Введены не корректные данные</span>}
+                    {/* <input className="Form__input" value={this.state.input} onChange={this.handleChange} placeholder="11.11,22.22;33.44,55.66;77.88,99.00;11.11,22.22"/> */}
+                    {this.state.showError && <span className="Error__message">*Введены не корректные данные</span>}
                 <div className="Form__Buttons__Block">
-                <div className="Form__button" onClick={this.findFeatures}>Поиск</div>
+                    <div className="Form__button" onClick={this.findFeatures}>Поиск</div>
                 </div>
+                {this.state.lengthSumm != 0 && <div className="WorkArea__ResultBottomLeft">
+                    <span className="Form__FullScreen" onClick={this.openModalCenter}></span>
+                    <h5>Рузультат выполнения инструмента:</h5>
+                    <div>
+                        <span>Сумма профилей внутри полигона: {this.state.lengthSumm} метров</span>                        
+                    </div>
+                </div>}
         	</div>
             )	
         }      
@@ -164,7 +176,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                             this.convertCoords(vertixes).then((result) => {
                                 var polygon = {
                                     type: "polygon",
-                                    rings: result
+                                    rings: [result]
                                 }
                                 this.filterPolygonsByPolygon(polygon);
                             })
@@ -202,19 +214,22 @@ export default class WorkAreasSearchByPolygonTool extends Component {
         
     filterPolygonsByPolygon(filterLayer){
         loadModules([
-        "esri/layers/FeatureLayer","esri/symbols/SimpleFillSymbol","esri/geometry/geometryEngine"]).then(([FeatureLayer, SimpleFillSymbol, geometryEngine]) => {
+        "esri/layers/FeatureLayer","esri/symbols/SimpleFillSymbol","esri/geometry/geometryEngine", "esri/Graphic"]).then(([FeatureLayer, SimpleFillSymbol, geometryEngine, Graphic]) => {
         // var layers = this.props.map.layers.items.filter(item => item.id != "GraphicLayer" && (item.id.includes("featureLayer") || item.id.includes("searchAreaLayer")))  
         var layers = [];
         layers.push(this.props.map.layers.items[this.state.selectValue])        
         layers.forEach((layer)=>{  
-            if(layer.geometryType === "polyline"){  
+            if(layer.geometryType === "polyline" && filterLayer.type === "polygon"){  
                 var fields = layer.fields;
                 var resultFeatures = [];
                 var query = layer.createQuery();
                 query.outFields = [ "*" ];
+                query.geometry = filterLayer;
+                query.returnGeometry = true;
                 layer.queryFeatures(query)
                 .then((response) => {
                     this.setState({allfeatures: response.features});
+                    this.setState({lengthSumm: 0})
                     response.features.forEach((feat)=>{
                         if(geometryEngine.intersects(feat.geometry, filterLayer)){
                             var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
@@ -223,8 +238,16 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                             resultFeatures.push(intersectedGeom);
                         }
                         })
-                            this.createGraphic(resultFeatures, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
-                            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_CLIP_' + this.props.map.layers.items.length : 'CLIP_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length));
+                            var graphics = [];
+                            resultFeatures.forEach(geom => {
+                            var graphic = new Graphic({
+                                attributes: geom.attributes,
+                                geometry: geom
+                            });   
+                                graphics.push(graphic); 
+                            }) 
+                            this.createGraphic(graphics, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
+                            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_CLIP_' + this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length : 'CLIP_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length));
                             // if(response.features.length == layer.maxRecordCount){
                             //    this.featureGet(response.features[response.features.length - 1].attributes["FID"]).then(all => {
                             //         all.forEach((feat)=>{
@@ -247,7 +270,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             queryCros.returnGeometry = true;
             layer.queryFeatures(queryCros).then((result) => {
             this.createGraphic(result.features, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
-            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_INTERSECT_' + this.props.map.layers.items.length : 'INTERSECT_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length));
+            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_INTERSECT_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length : 'INTERSECT_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length));
         })
     })          
     })}; 
@@ -337,6 +360,38 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             return newPoints;
         });
         return result
+    }
+
+    featureGet(fid){
+        var myFeatureLayer = this.props.map.findLayerById("mainLayer"); 
+        var query1 = myFeatureLayer.createQuery();
+        query1.where = "FID > " + fid;
+        var all = myFeatureLayer.queryFeatures(query1).then((res) => {
+                this.state.allfeatures = this.state.allfeatures.concat(res.features); 
+                if(res.features.length == myFeatureLayer.maxRecordCount)
+                    return this.featureGet(res.features[res.features.length - 1].attributes["FID"])
+                else{
+                    return this.state.allfeatures;
+                }                    
+            })
+        return all
+    }
+
+    openModalCenter(){
+        var state = !this.state.resultOpenModal;
+        this.setState({resultOpenModal: state});
+        if(state){
+            var elem = document.getElementsByClassName('WorkArea__ResultBottomLeft')[0];
+            elem.style.left = 'calc(50% - 200px)';
+            elem.style.top = '25%';
+            elem.style.height = 'auto';
+        }
+        else{
+            var elem = document.getElementsByClassName('WorkArea__ResultBottomLeft')[0];
+            elem.style.left = 'auto';
+            elem.style.top = 'auto';
+            elem.style.height = '56px';
+        }
     }
 
     closeThis(){
