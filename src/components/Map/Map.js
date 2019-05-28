@@ -34,7 +34,8 @@ export default class MapContainer extends Component {
             drawPolygonPointsCollection: [],
             selectPolygonCollection: [],
             layers: [],
-            graphicLayer: {}
+            graphicLayer: {},
+            layerName: ""
         }
         
         this.handleMapLoad = this.handleMapLoad.bind(this);
@@ -83,7 +84,7 @@ export default class MapContainer extends Component {
                 selectPolygonCollection = {this.state.map.findLayerById("GraphicLayer") ? this.state.map.findLayerById("GraphicLayer").graphics.items : []} 
                 startDrawPolygon={(flag)=>this.startDrawPolygonTolltip(flag)} LayersList = {this.state.layers} updateLayersArray = {this.updateLayersArray}></WorkAreasSearchByPolygonTool>}
                 
-                {this.props.workToolId === "attributeTable" && <FeatureTableComponent tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)}></FeatureTableComponent>} 
+                {this.props.workToolId === "attributeTable" && <FeatureTableComponent layerName = {this.state.layerName} tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)}></FeatureTableComponent>} 
                 
                 {this.props.showLayersListForm && <LayersListComponent openTable = {(id) => this.showTable(id)} LayersList = {this.state.layers} toggleLayer={(layerId, flag, index) => this.toggleLayer(layerId, flag, index)}></LayersListComponent>}
                 
@@ -156,7 +157,6 @@ export default class MapContainer extends Component {
         }
         if(this.state.map.findLayerById("GraphicLayer") && this.state.map.findLayerById("GraphicLayer").graphics){
             this.state.map.findLayerById("GraphicLayer").graphics.remove(this.state.map.findLayerById("GraphicLayer").graphics.items[index]);
-            console.log(this.state.map.findLayerById("GraphicLayer").graphics)
         }
     }
 
@@ -169,16 +169,15 @@ export default class MapContainer extends Component {
                 };
                 const myFeatureLayer = new FeatureLayer({
                     mode: FeatureLayer.MODE_ONDEMAND,
-                    id: "ServiceLayer-" + this.state.map.layers.items.length,
+                    id: 'PrivateCreateLayer' + "ServiceLayer-" + this.state.map.layers.items.length,
                     url: this.state.servicePath,
                     outFields: ["*"],
                     popupTemplate: template
                   });
                   
-                this.state.map.add(myFeatureLayer);   
-                var lay = this.state.layers;  
-                lay.push(myFeatureLayer);
-                this.setState({layers: lay, servicePath: ""})
+                this.state.map.add(myFeatureLayer); 
+                this.updateLayersArray()
+                this.setState({servicePath: ""})
             })
             .then(() => {this.props.toggleForm("AddServiceForm")})
             .catch((err) => console.error(err));
@@ -193,16 +192,15 @@ export default class MapContainer extends Component {
               };
             const myFeatureLayer = new FeatureLayer({
                 mode: FeatureLayer.MODE_ONDEMAND,
-                id: "ServiceLayer-" + this.state.map.layers.items.length,
+                id: 'PrivateCreateLayer' + "ServiceLayer-" + this.state.map.layers.items.length,
                 url: this.state.servicePath,
                 outFields: ["*"],
                 popupTemplate: template
               });
             
             this.state.map.add(myFeatureLayer); 
-            var lay = this.state.layers;  
-            lay.push(myFeatureLayer);
-            this.setState({layers: lay, servicePath: ""})
+            this.updateLayersArray();
+            this.setState({servicePath: ""})
         })
         .then(() => {this.showHeadersTools();
                     this.props.addFeatureLayerService()})
@@ -238,7 +236,8 @@ export default class MapContainer extends Component {
         myFeatureLayer.queryFeatures(query)
         .then((response) => {
             this.setState({tableItemsData: response.features,
-                tableItemsFieldName: myFeatureLayer.fields.filter(field => field.alias != 'Shape')
+                tableItemsFieldName: myFeatureLayer.fields.filter(field => field.alias != 'Shape'),
+                layerName: myFeatureLayer.source && myFeatureLayer.source.layerDefinition && myFeatureLayer.source.layerDefinition.name ? myFeatureLayer.source.layerDefinition.name : myFeatureLayer.id
             }, ()=>{
                 this.props.openToolWorkForm("attributeTable")
             });         

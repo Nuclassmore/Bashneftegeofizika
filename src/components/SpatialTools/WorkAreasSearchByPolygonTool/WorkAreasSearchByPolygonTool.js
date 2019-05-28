@@ -73,7 +73,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                         <div className="select__Label">Выбрать слой</div>
                         <select value={this.state.selectValue} onChange={this.onChangeSelect} className="WorkArea__SelectBox">
                             <option value="select">Выбрать</option>
-                            {this.props.LayersList.map((layer, index) => { if(!layer.id.includes('object')) return <option key={index} value={index}> {layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : "FeatureLayer_" + index } </option>})}
+                            {this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer')) return <option key={index} value={index}> {layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', '') } </option>})}
                         </select>
                     </div>
                 {/* <input className="Form__input" value={this.state.input} onChange={this.handleChange} placeholder="11.11,22.22;33.44,55.66;77.88,99.00;11.11,22.22"/> */}
@@ -223,7 +223,8 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                             resultFeatures.push(intersectedGeom);
                         }
                         })
-                            this.createGraphic(resultFeatures, fields.filter(field => field.alias != 'Shape'), layer.geometryType, (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_CLIP_' + this.props.map.layers.items.length : 'CLIP_Layer_' +  this.props.map.layers.items.length));
+                            this.createGraphic(resultFeatures, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
+                            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_CLIP_' + this.props.map.layers.items.length : 'CLIP_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length));
                             // if(response.features.length == layer.maxRecordCount){
                             //    this.featureGet(response.features[response.features.length - 1].attributes["FID"]).then(all => {
                             //         all.forEach((feat)=>{
@@ -245,7 +246,8 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             queryCros.geometry = filterLayer;
             queryCros.returnGeometry = true;
             layer.queryFeatures(queryCros).then((result) => {
-            this.createGraphic(result.features, fields.filter(field => field.alias != 'Shape'), layer.geometryType, (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_INTERSECT_' + this.props.map.layers.items.length : 'INTERSECT_Layer_' +  this.props.map.layers.items.length));
+            this.createGraphic(result.features, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
+            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_INTERSECT_' + this.props.map.layers.items.length : 'INTERSECT_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length));
         })
     })          
     })}; 
@@ -263,7 +265,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                         }
                     }         
                 var featureLayer = new FeatureLayer({
-                    id: Name,
+                    id: 'PrivateCreateLayer' + Name,
                     source: graphics,
                     fields: fields,
                     geometryType: "point",
@@ -290,7 +292,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                         }
                     }         
                 var featureLayer = new FeatureLayer({
-                    id: Name,
+                    id: 'PrivateCreateLayer' + Name,
                     source: graphics,
                     fields: fields,
                     geometryType: "polygon",
@@ -313,7 +315,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                       }
                     }         
                 var featureLayer = new FeatureLayer({
-                    id: Name,
+                    id: 'PrivateCreateLayer' + Name,
                     source: graphics,
                     fields: fields,
                     geometryType: "polyline",
