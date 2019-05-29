@@ -51,6 +51,7 @@ export default class MapContainer extends Component {
         this.startDrawPolygonTolltip = this.startDrawPolygonTolltip.bind(this);     
         this.removeGraphics = this.removeGraphics.bind(this);   
         this.updateLayersArray = this.updateLayersArray.bind(this);
+        this.removeLayer = this.removeLayer.bind(this);
     }  
     
     _onMouseMove(e) {
@@ -86,7 +87,7 @@ export default class MapContainer extends Component {
                 
                 {this.props.workToolId === "attributeTable" && <FeatureTableComponent layerName = {this.state.layerName} tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)}></FeatureTableComponent>} 
                 
-                {this.props.showLayersListForm && <LayersListComponent openTable = {(id) => this.showTable(id)} LayersList = {this.state.layers} toggleLayer={(layerId, flag, index) => this.toggleLayer(layerId, flag, index)}></LayersListComponent>}
+                {this.props.showLayersListForm && <LayersListComponent openTable = {(id) => this.showTable(id)} removeLayer={(id) => this.removeLayer(id)} LayersList = {this.state.layers} toggleLayer={(layerId, flag, index) => this.toggleLayer(layerId, flag, index)}></LayersListComponent>}
                 
                 {/* Добавление при входе */}
                 {!this.props.showLayer && this.state.status === "loaded" && <div className="AddLayer__Form"> 
@@ -97,6 +98,7 @@ export default class MapContainer extends Component {
 
                 {/* Простое Добавление */}
                 {this.props.showLayerAddForm && <div className="AddLayer__Form"> 
+                <span className="Form__Close" onClick={() => this.props.toggleForm("AddServiceForm")}></span>
                 <h5>Введите адрес сервиса пространственных объектов</h5>
                 <input className="Form__input" value={this.state.servicePath} onChange={this.handleChangePath} placeholder="Введите адрес"/>
                 <div className="Form__Buttons__Block"><div className="Form__button" onClick={this.addServiceLayer}>Добавить сервис</div></div>
@@ -147,6 +149,15 @@ export default class MapContainer extends Component {
         this.setState({layers: items})
     }
 
+    removeLayer(layerId){
+        try{
+            this.state.map.remove(this.state.map.findLayerById(layerId));
+            this.updateLayersArray();
+        }
+        catch{
+            window.alert("Не удалось удалить слой")
+        }
+    }
     
     removeGraphics(index, method){
         if(method != "MouseMethod"){
@@ -163,7 +174,6 @@ export default class MapContainer extends Component {
     addServiceLayer(){
         loadModules(["esri/layers/FeatureLayer"]).then(([FeatureLayer]) => {
                 var template = {
-                    // autocasts as new PopupTemplate()
                     title: "Информация по объекту",
                     content: "{*}"
                 };
@@ -186,7 +196,6 @@ export default class MapContainer extends Component {
     addService(){
         loadModules(["esri/layers/FeatureLayer"]).then(([FeatureLayer]) => {
             var template = {
-                // autocasts as new PopupTemplate()
                 title: "Информация по объекту",
                 content: "{*}"
               };
@@ -254,7 +263,6 @@ export default class MapContainer extends Component {
     }
 
     startDrawPolygon(event){ 
-        console.log(this.state.map)
         if(!this.state.startDrawing){
             
         }

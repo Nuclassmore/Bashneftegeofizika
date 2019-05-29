@@ -31,14 +31,34 @@
     line-height: 40px;
 }
 
-.LayersList__TableIcon{
+.LayersList__SettingsIcon{
 	display: inline-block;
 	width: 40px;
+	background-size: 20px 20px;
 	height: 40px;
-	background-image: url("../../../assets/baseline_table_chart_white_18dp.png");
+	background-image: url("../../../assets/settings.png");
 	background-repeat: no-repeat;
 	background-position: center;
 	cursor: pointer;
+}
+
+.LayersList__SettingsIcon>div {
+	background:white;
+	position: absolute;
+	right: 5px;
+	margin-top: -40px;
+	box-shadow: 0 0 5px rgba(0,0,0,0.8);
+}
+
+.LayersList__SettingsIcon div div{
+	font-size: 12px;
+	color: black;
+	padding: 5px 10px;
+}
+
+.LayersList__SettingsIcon div div:hover{
+	height: min-content;
+	background-color: rgba(0,0,0,0.2);
 }
 
 .LayersList__InnerBlock{
