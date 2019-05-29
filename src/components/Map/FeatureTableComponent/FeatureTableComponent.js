@@ -7,9 +7,13 @@ export default class FeatureTableComponent extends Component {
 		this.state = { 
             showItemsStart: 0,
             showItemsEnd: 0,
-            searchInput: "",
             featuresList: [],
-            filteredFeatures: []
+            filteredFeatures: [],
+            tab: "base",
+            serchValue: "",
+            selectedObjects: [],
+            selectedObjectsIds: [],
+            filteredSelectedObjects: []
 		}
         this.closeThis = this.closeThis.bind(this);
         this.moveArrayForward= this.moveArrayForward.bind(this);
@@ -26,41 +30,78 @@ export default class FeatureTableComponent extends Component {
         this.myXMLCell = this.myXMLCell.bind(this);
         this.myXMLData = this.myXMLData.bind(this);
         this.flatten = this.flatten.bind(this);
-
+        this.changeTab = this.changeTab.bind(this);
+        this.downLoadCSV = this.downLoadCSV.bind(this);
+        this.handleCntrlClick = this.handleCntrlClick.bind(this);
     }
 
     
     componentWillMount() {
         this.setState({featuresList: this.props.tableShowData, filteredFeatures: this.props.tableShowData}, ()=>{
-            var end = this.state.filteredFeatures.length > 200 ? 200 : this.state.filteredFeatures.length;
+            var end = this.state.filteredFeatures.length > 100 ? 100 : this.state.filteredFeatures.length;
             this.setState({showItemsEnd: end});
         })
     }
     
     handleChangeSearch(event){
-        //this.setState({searchInput: event.target.value})
-        var filtered = this.state.featuresList.filter(feature => {
-            return Object.keys(feature.attributes).some(item => {
-                if(typeof feature.attributes[item] == 'number'){
-                    if(feature.attributes[item] != null && feature.attributes[item] == event.target.value)
-                        return true;
-                }
-                else{
-                    if(feature.attributes[item] != null && feature.attributes[item].toLowerCase().includes(event.target.value.toLowerCase()))
-                        return true
-                }   
-            })
-          })
-        this.setState({filteredFeatures: filtered})
+        if(event.target.value == "" && this.state.tab == "base"){
+            this.setState({filteredFeatures: this.state.featuresList, serchValue: ""}, () => {this.setState({showItemsStart: 0, showItemsEnd: this.state.filteredFeatures.length > 100 ? 100 : this.state.filteredFeatures.length})})
+        }
+        else if(event.target.value == "" && this.state.tab == "select"){
+            this.setState({filteredSelectedObjects: this.state.selectedObjects, serchValue: ""}, () => {this.setState({showItemsStart: 0, showItemsEnd: this.state.filteredSelectedObjects.length > 100 ? 100 : this.state.filteredSelectedObjects.length})})
+        }
+        else if(this.state.tab == "base"){
+            this.setState({serchValue: event.target.value});
+            var filtered = this.state.featuresList.filter(feature => {
+                return Object.keys(feature.attributes).some(item => {
+                    if(typeof feature.attributes[item] == 'number'){
+                        if(feature.attributes[item] != null && feature.attributes[item] == event.target.value)
+                            return true;
+                    }
+                    else{
+                        if(feature.attributes[item] != null && feature.attributes[item].toLowerCase().includes(event.target.value.toLowerCase()))
+                            return true
+                    }   
+                })
+              })
+            this.setState({filteredFeatures: filtered}, () => {this.setState({showItemsStart: 0, showItemsEnd: this.state.filteredFeatures.length > 100 ? 100 : this.state.filteredFeatures.length})})
+        }
+        else if(this.state.tab == "select"){
+            this.setState({serchValue: event.target.value});
+            var filtered = this.state.selectedObjects.filter(feature => {
+                return Object.keys(feature.attributes).some(item => {
+                    if(typeof feature.attributes[item] == 'number'){
+                        if(feature.attributes[item] != null && feature.attributes[item] == event.target.value)
+                            return true;
+                    }
+                    else{
+                        if(feature.attributes[item] != null && feature.attributes[item].toLowerCase().includes(event.target.value.toLowerCase()))
+                            return true
+                    }   
+                })
+              })
+            this.setState({filteredSelectedObjects: filtered}, () => {this.setState({showItemsStart: 0, showItemsEnd: this.state.filteredSelectedObjects.length > 100 ? 100 : this.state.filteredSelectedObjects.length})})
+        }
     }
 
+    handleCntrlClick(event, id, item){
+        event.stopPropagation();
+     
+        if (event.ctrlKey && this.state.tab == "base" && !this.state.selectedObjectsIds.includes(id)) {            
+            this.state.selectedObjectsIds.push(id)
+            this.state.selectedObjects.push(item)
+            this.setState({filteredSelectedObjects: this.state.selectedObjects})
+        }
+     }
+
     render() {
-        const list = this.state.filteredFeatures.slice(this.state.showItemsStart, this.state.showItemsEnd)
+        const list = this.state.tab == "base" ? this.state.filteredFeatures.slice(this.state.showItemsStart, this.state.showItemsEnd) : this.state.filteredSelectedObjects.slice(this.state.showItemsStart, this.state.showItemsEnd)
+        const listType = this.state.tab == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
         return (
         	<div className="FeatureTable__Block"> 
                 <span className="Form__Close" onClick={this.closeThis}></span>
                 <div className="FeatureTable__SearchBlock">
-                    <input className="FeatureTable__SearchInput" placeholder="Поиск" onChange={this.handleChangeSearch}/>
+                    <input className="FeatureTable__SearchInput" value={this.state.serchValue} placeholder="Поиск" onChange={this.handleChangeSearch}/>
                 </div>
                 <div className="FeatureTable__TableBlock">
                 <table className="FeatureTable__Table">
@@ -70,24 +111,46 @@ export default class FeatureTableComponent extends Component {
                         </tr>
                     </thead>
                     <tbody>
-                    {list.map((item, index) => {return <tr key={index}>{Object.keys(item.attributes).map((keyName, index) => {return <td key={index}>{item.attributes[keyName]}</td>})}</tr>})}
+                    {list.map((item, index) => {return <tr key={index} id={this.state.tab + item.attributes['FID']} style={{'background': this.state.selectedObjectsIds.filter(obj => obj == item.attributes['FID']).length > 0 && this.state.tab == 'base' ? 'rgba(255, 255, 255, 0.5)' : '' }} onClick={($event) => this.handleCntrlClick($event, item.attributes['FID'], item)} >{Object.keys(item.attributes).map((keyName, index) => {return <td key={index}>{item.attributes[keyName]}</td>})}</tr>})}
                     </tbody>
                 </table>   
-                <div className="FeatureTable__DownloadExcel" onClick={() => this.downLoadExcel()}>Скачать таблицу</div>  
+                <div className="FeatureTable__CurrentTable" ref="base" style={{ 'background' : this.state.tab == "base" ? 'rgba(96, 102, 114, 0.6)' : ''}} onClick={() => this.changeTab("base")}>Таблица</div>  
+                <div className="FeatureTable__SelectTable" ref="select" style={{ 'background' : this.state.tab == "select" ? 'rgba(96, 102, 114, 0.6)' : ''}} onClick={() => this.changeTab("select")}>Выбранные</div>  
+                <div className="FeatureTable__DownloadExcel" onClick={() => this.downLoadCSV()}>Скачать таблицу</div>  
                 </div>
                 <div className="FeatureTable__ButtonsBlock">
                     <span className="FeatureTable__Back" style={{visibility: this.state.showItemsStart == 0 ? 'hidden' : 'visible'}} onClick={() => this.moveArrayBack()}>Назад</span>        
-                    <span className="FeatureTable__Forward" style={{visibility: this.state.filteredFeatures.length > this.state.showItemsEnd ? 'visible' : 'hidden'}} onClick={() => this.moveArrayForward()}>Вперед</span>       
+                    <span className="FeatureTable__Forward" style={{visibility: listType.length > this.state.showItemsEnd ? 'visible' : 'hidden'}} onClick={() => this.moveArrayForward()}>Вперед</span>       
                 </div>
             </div>
             )	
     }
 
+    moveArrayForward(){
+        var list = this.state.tab == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
+        this.setState({showItemsEnd: list.length > this.state.showItemsEnd + 100 ? this.state.showItemsEnd + 100 : list.length})
+        this.setState({showItemsStart: list.length > this.state.showItemsStart + 100 ? this.state.showItemsStart + 100 : 0})
+    }
+    
+    moveArrayBack(){
+        this.setState({showItemsEnd: this.state.showItemsEnd - 100 > 0 ? this.state.showItemsEnd - 100 : this.state.showItemsEnd})
+        this.setState({showItemsStart: this.state.showItemsEnd - 100 > 0 ? this.state.showItemsStart - 100 : this.state.showItemsStart})
+    }
+
+    changeTab(tabId){
+        if(tabId != this.state.tab){
+            this.refs[tabId].style.background = "rgba(96, 102, 114, 0.6)";
+            var listType = tabId == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
+            this.setState({tab: tabId, showItemsStart: 0, showItemsEnd: listType.length > 100 ? 100 : listType.length});
+        }
+    }
     
     downLoadExcel(){    
         var json = [];        
 
-        this.state.filteredFeatures.forEach(element => {
+        var downloadData = this.state.tab == "base" ? this.state.featuresList : this.state.filteredFeatures
+
+        downloadData.forEach(element => {
             Object.keys(element.attributes).forEach(item => {
                 element.attributes[item] = typeof element.attributes[item] == 'number' ? element.attributes[item].toString().replace('.', ',') : element.attributes[item];
             }) 
@@ -111,24 +174,29 @@ export default class FeatureTableComponent extends Component {
     }
 
     downLoad(SheetName, fs, styleID) {
-        let uri, link, Workbook, WorkbookStart = '<?xml version="1.0"?><ss:Workbook  xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">';
-        const WorkbookEnd = '</ss:Workbook>';
-        let fileName = this.props.layerName + "_таблица_атрибутов";
-        const Worksheet = this.myXMLWorkSheet(SheetName, fs);
+        try{
+            let uri, link, Workbook, WorkbookStart = '<?xml version="1.0"?><ss:Workbook  xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">';
+            const WorkbookEnd = '</ss:Workbook>';
+            let fileName = this.props.layerName + "_таблица_атрибутов";
+            const Worksheet = this.myXMLWorkSheet(SheetName, fs);
 
-        WorkbookStart += this.myXMLStyles(styleID);
+            WorkbookStart += this.myXMLStyles(styleID);
 
-        Workbook = WorkbookStart + Worksheet + WorkbookEnd;
+            Workbook = WorkbookStart + Worksheet + WorkbookEnd;
+            
+            uri = 'data:text/xls;charset=utf-8,' + encodeURIComponent(Workbook);
+            link = document.createElement("a");
+            link.href = uri;
+            link.style = "visibility:hidden";
+            link.download = fileName + ".xls";
 
-        uri = 'data:text/xls;charset=utf-8,' + encodeURIComponent(Workbook);
-        link = document.createElement("a");
-        link.href = uri;
-        link.style = "visibility:hidden";
-        link.download = fileName + ".xls";
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        catch{
+            this.downLoadCSV();
+        }
     }
 
     myXMLStyles(id){
@@ -252,79 +320,72 @@ export default class FeatureTableComponent extends Component {
         }
     }
 
-    // downLoadExcel(){
-    //     var JSONData = [];        
+    downLoadCSV(){
+        var JSONData = [];        
 
-    //     this.state.filteredFeatures.forEach(element => {
-    //         Object.keys(element.attributes).forEach(item => {
-    //             element.attributes[item] = typeof element.attributes[item] == 'number' ? element.attributes[item].toString().replace('.', ',') : element.attributes[item];
-    //         }) 
-    //         JSONData.push(element.attributes);
-    //     });        
+        var downloadData = this.state.tab == "base" ? this.state.featuresList : this.state.filteredFeatures
 
-    //     var arrData = typeof JSONData != 'object' ? JSON.parse(JSONData) : JSONData;
+        downloadData.forEach(element => {
+            Object.keys(element.attributes).forEach(item => {
+                element.attributes[item] = typeof element.attributes[item] == 'number' ? element.attributes[item].toString().replace('.', ',') : element.attributes[item];
+            }) 
+            JSONData.push(element.attributes);
+        });        
+
+        var arrData = typeof JSONData != 'object' ? JSON.parse(JSONData) : JSONData;
         
 
-    //     var CSV = '\ufeff' + '\r\n\n';
+        var CSV = '\ufeff';
+        //var CSV = 'sep=,' + '\r\n\n';
 
-    //     if (true) {
-    //         var row = "";
+        if (true) {
+            var row = "";
             
-    //         for (var index in arrData[0]) {
+            for (var index in arrData[0]) {
                 
-    //             row += index + ',';
-    //         }
+                row += index + ';';
+            }
 
-    //         row = row.slice(0, -1);
+            row = row.slice(0, -1);
             
-    //         CSV += row + '\r\n';
-    //     }
+            CSV += row + '\r\n';
+        }
 
-    //     for (var i = 0; i < arrData.length; i++) {
-    //         var row = "";
+        for (var i = 0; i < arrData.length; i++) {
+            var row = "";
             
-    //         for (var index in arrData[i]) {
-    //             row += '"' + arrData[i][index] + "Хер" + '",';
-    //         }
+            for (var index in arrData[i]) {
+                row += '"' + arrData[i][index] +'";';
+            }
 
-    //         row.slice(0, row.length - 1);
+            row.slice(0, row.length - 1);
             
-    //         CSV += row + '\r\n';
-    //     }
+            CSV += row + '\r\n';
+        }
 
-    //     if (CSV == '') {        
-    //         alert("Invalid data");
-    //         return;
-    //     }   
+        if (CSV == '') {        
+            alert("Invalid data");
+            return;
+        }   
         
-    //     var ReportTitle = "таблицы_атрибутов"
-    //     var fileName = "Выгрузка_";        
-    //     fileName += ReportTitle.replace(/ /g,"_");   
+        var ReportTitle = "таблицы_атрибутов"
+        var fileName = "Выгрузка_";        
+        fileName += ReportTitle.replace(/ /g,"_");   
         
-    //     console.log(CSV)
+        console.log(CSV)
 
-    //     var uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(CSV);
+        var uri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(CSV);
         
-    //     var link = document.createElement("a");    
-    //     link.href = uri;
+        var link = document.createElement("a");    
+        link.href = uri;
         
-    //     link.style = "visibility:hidden";
-    //     link.download = fileName + ".csv";
+        link.style = "visibility:hidden";
+        link.download = fileName + ".csv";
         
-    //     document.body.appendChild(link);
-    //     link.click();
-    //     document.body.removeChild(link);
-    // }
-    
-    moveArrayForward(){
-        this.setState({showItemsEnd: this.state.filteredFeatures.length > this.state.showItemsEnd + 200 ? this.state.showItemsEnd + 200 : this.state.filteredFeatures.length})
-        this.setState({showItemsStart: this.state.filteredFeatures.length > this.state.showItemsStart + 200 ? this.state.showItemsStart + 200 : 0})
-    }
-    
-    moveArrayBack(){
-        this.setState({showItemsEnd: this.state.showItemsEnd - 200 > 0 ? this.state.showItemsEnd - 200 : this.state.showItemsEnd})
-        this.setState({showItemsStart: this.state.showItemsEnd - 200 > 0 ? this.state.showItemsStart - 200 : this.state.showItemsStart})
-    }
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } 
 
     closeThis(){
         this.props.closeForm("FeatureTable");

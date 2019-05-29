@@ -6,7 +6,6 @@ import MyFeatureLayer from '../MyFeatureLayer/MyFeatureLayer';
 import FeatureTableComponent from './FeatureTableComponent/FeatureTableComponent';
 import LayersListComponent from './LayersListComponent/LayersListComponent';
 import WorkAreasSearchByPolygonTool from '../SpatialTools/WorkAreasSearchByPolygonTool/WorkAreasSearchByPolygonTool';
-import SectionSumByPolygonTool from '../SpatialTools/SectionSumByPolygonTool/SectionSumByPolygonTool';
 import { loadModules } from '@esri/react-arcgis';
 
 export default class MapContainer extends Component {
