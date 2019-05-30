@@ -15,7 +15,7 @@ export default class LayersListComponent extends Component {
         return (
         	<div className="LayersList__Block"> 
                 <div className="LayersList__Title">Слои</div>
-                <div className="LayersList__InnerBlock">{this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer')) 
+                <div className="LayersList__InnerBlock">{this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer') && !layer.id.includes('PrivateSelect')) 
                     {
                     return <div key={index} className="LayersList__Item" >
                             <div className="LayersList__Checkbox">

@@ -2,7 +2,6 @@ import React, { Component, forwardRef, useRef, useImperativeHandle } from 'react
 import './Map.css';
 import ReactDOM from 'react-dom';
 import { Map } from '@esri/react-arcgis';
-import MyFeatureLayer from '../MyFeatureLayer/MyFeatureLayer';
 import FeatureTableComponent from './FeatureTableComponent/FeatureTableComponent';
 import LayersListComponent from './LayersListComponent/LayersListComponent';
 import WorkAreasSearchByPolygonTool from '../SpatialTools/WorkAreasSearchByPolygonTool/WorkAreasSearchByPolygonTool';
@@ -20,10 +19,8 @@ export default class MapContainer extends Component {
                   }
             },
             status: 'loading',
-            showTableFlag: false,
             tableItemsData: [],
             tableItemsFieldName: [],
-            filterPolygon: Object,
             showLayer: false,
             servicePath: "",
             selectionToolbar: null,
@@ -34,7 +31,8 @@ export default class MapContainer extends Component {
             selectPolygonCollection: [],
             layers: [],
             graphicLayer: {},
-            layerName: ""
+            layerName: "",
+            tableGeometryType: ""
         }
         
         this.handleMapLoad = this.handleMapLoad.bind(this);
@@ -67,8 +65,6 @@ export default class MapContainer extends Component {
         }
     }
 
-
-
     render() {
         return (
             <div className="Map" onMouseMove={this._onMouseMove.bind(this)}>                       
@@ -84,7 +80,7 @@ export default class MapContainer extends Component {
                 selectPolygonCollection = {this.state.map.findLayerById("GraphicLayer") ? this.state.map.findLayerById("GraphicLayer").graphics.items : []} 
                 startDrawPolygon={(flag)=>this.startDrawPolygonTolltip(flag)} LayersList = {this.state.layers} updateLayersArray = {this.updateLayersArray}></WorkAreasSearchByPolygonTool>}
                 
-                {this.props.workToolId === "attributeTable" && <FeatureTableComponent layerName = {this.state.layerName} tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)}></FeatureTableComponent>} 
+                {this.props.workToolId === "attributeTable" && <FeatureTableComponent tableGeometryType = {this.state.tableGeometryType} layerName = {this.state.layerName} map = {this.state.map} tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)}></FeatureTableComponent>} 
                 
                 {this.props.showLayersListForm && <LayersListComponent openTable = {(id) => this.showTable(id)} removeLayer={(id) => this.removeLayer(id)} LayersList = {this.state.layers} toggleLayer={(layerId, flag, index) => this.toggleLayer(layerId, flag, index)}></LayersListComponent>}
                 
@@ -92,7 +88,7 @@ export default class MapContainer extends Component {
                 {!this.props.showLayer && this.state.status === "loaded" && <div className="AddLayer__Form"> 
                 <h5>Введите адрес сервиса пространственных объектов</h5>
                 <input className="Form__input" value={this.state.servicePath} onChange={this.handleChangePath} placeholder="Введите адрес"/>
-                <div className="Form__Buttons__Block"><div className="Form__button" onClick={this.addService}>Добавить сервис</div></div>
+                <div className="Form__Buttons__Block"><div className="Form__button" onClick={this.addService}>Добавить слой</div></div>
                 </div>}
 
                 {/* Простое Добавление */}
@@ -100,10 +96,8 @@ export default class MapContainer extends Component {
                 <span className="Form__Close" onClick={() => this.props.toggleForm("AddServiceForm")}></span>
                 <h5>Введите адрес сервиса пространственных объектов</h5>
                 <input className="Form__input" value={this.state.servicePath} onChange={this.handleChangePath} placeholder="Введите адрес"/>
-                <div className="Form__Buttons__Block"><div className="Form__button" onClick={this.addServiceLayer}>Добавить сервис</div></div>
+                <div className="Form__Buttons__Block"><div className="Form__button" onClick={this.addServiceLayer}>Добавить слой</div></div>
                 </div>}
-
-                {/* this.state.startDrawing  && <div className="tooltip" ref="tip" style={{top: this.state.x, left: this.state.y}}>Нажмите дважды для завершения</div> */}
             </div>            
         )	    
     }      
@@ -114,7 +108,6 @@ export default class MapContainer extends Component {
 
     startDrawPolygonTolltip(flag){
         if(flag === "on"){
-            //this.setState({startDrawing: true});
             loadModules(["esri/widgets/Sketch","esri/layers/GraphicsLayer"]).then(([Sketch, GraphicsLayer]) => {
                 var graph = new GraphicsLayer({id: "GraphicLayer"});
                 this.state.map.add(graph);
@@ -130,7 +123,6 @@ export default class MapContainer extends Component {
             })
         }
         else{
-            //this.setState({startDrawing: false});
             this.state.map.remove(this.state.map.findLayerById("GraphicLayer"));
             this.state.view.ui.empty("top-right");
             this.setState({selectPolygonCollection: []});
@@ -159,12 +151,6 @@ export default class MapContainer extends Component {
     }
     
     removeGraphics(index, method){
-        if(method != "MouseMethod"){
-            this.setState({startDrawing: false})
-        }
-        else{
-            this.setState({startDrawing: true})
-        }
         if(this.state.map.findLayerById("GraphicLayer") && this.state.map.findLayerById("GraphicLayer").graphics){
             this.state.map.findLayerById("GraphicLayer").graphics.remove(this.state.map.findLayerById("GraphicLayer").graphics.items[index]);
         }
@@ -210,7 +196,7 @@ export default class MapContainer extends Component {
             this.updateLayersArray();
             this.setState({servicePath: ""})
         })
-        .then(() => {this.showHeadersTools();
+        .then(() => {this.props.showHeadersTools();
                     this.props.addFeatureLayerService()})
         .catch((err) => console.error(err));             
     }
@@ -218,10 +204,6 @@ export default class MapContainer extends Component {
     updateLayersArray(){
         var layers = this.state.map.layers.items;
         this.setState({layers: layers})
-    }
-
-    showHeadersTools(){
-        this.props.showHeadersTools();
     }
 
     handleChangePath(event) {
@@ -235,7 +217,6 @@ export default class MapContainer extends Component {
 
     showTable(LayerId){  
         if(this.props.workToolId === "firstTool"){
-            this.setState({startDrawing: false});
             this.startDrawPolygonTolltip('off')
         }
         var myFeatureLayer = this.state.map.findLayerById(LayerId);   
@@ -245,7 +226,8 @@ export default class MapContainer extends Component {
         .then((response) => {
             this.setState({tableItemsData: response.features,
                 tableItemsFieldName: myFeatureLayer.fields.filter(field => field.alias != 'Shape'),
-                layerName: myFeatureLayer.source && myFeatureLayer.source.layerDefinition && myFeatureLayer.source.layerDefinition.name ? myFeatureLayer.source.layerDefinition.name : myFeatureLayer.id
+                layerName: myFeatureLayer.source && myFeatureLayer.source.layerDefinition && myFeatureLayer.source.layerDefinition.name ? myFeatureLayer.source.layerDefinition.name : myFeatureLayer.id,
+                tableGeometryType: myFeatureLayer.geometryType
             }, ()=>{
                 this.props.openToolWorkForm("attributeTable")
             });         

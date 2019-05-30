@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import './WorkAreasSearchByPolygonTool.css';
 import {getAllFeatures} from '../../../services/Feature.service';
 import { loadModules } from '@esri/react-arcgis'
+import {createFeatureLayer} from '../../../utils/Create';
 
 
 export default class WorkAreasSearchByPolygonTool extends Component {
@@ -35,6 +36,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
         this.onChangeSelect = this.onChangeSelect.bind(this);
         this.openModalCenter = this.openModalCenter.bind(this);
         this.featureGet = this.featureGet.bind(this);
+        this.createFeatureLayer = createFeatureLayer.bind(this);
     }
 
     componentDidMount(){
@@ -78,7 +80,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                         <div className="select__Label">Выбрать слой</div>
                         <select value={this.state.selectValue} onChange={this.onChangeSelect} className="WorkArea__SelectBox">
                             <option value="select">Выбрать</option>
-                            {this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer')) return <option key={index} value={index}> {layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', '') } </option>})}
+                            {this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer') && !layer.id.includes('PrivateSelect')) return <option key={index} value={index}> {layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', '') } </option>})}
                         </select>
                     </div>
                     {/* <input className="Form__input" value={this.state.input} onChange={this.handleChange} placeholder="11.11,22.22;33.44,55.66;77.88,99.00;11.11,22.22"/> */}
@@ -230,13 +232,15 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                 .then((response) => {
                     this.setState({allfeatures: response.features});
                     this.setState({lengthSumm: 0})
-                    response.features.forEach((feat)=>{
-                        if(geometryEngine.intersects(feat.geometry, filterLayer)){
-                            var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
-                            intersectedGeom.attributes = feat.attributes;
-                            this.state.lengthSumm = this.state.lengthSumm + geometryEngine.geodesicLength(intersectedGeom, "meters");
-                            resultFeatures.push(intersectedGeom);
-                        }
+                    response.features.forEach((feat)=>
+                        {
+                            if(geometryEngine.intersects(feat.geometry, filterLayer))
+                            {
+                                var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
+                                intersectedGeom.attributes = feat.attributes;
+                                this.state.lengthSumm = this.state.lengthSumm + geometryEngine.geodesicLength(intersectedGeom, "meters");
+                                resultFeatures.push(intersectedGeom);
+                            }
                         })
                             var graphics = [];
                             resultFeatures.forEach(geom => {
@@ -269,88 +273,18 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             queryCros.geometry = filterLayer;
             queryCros.returnGeometry = true;
             layer.queryFeatures(queryCros).then((result) => {
-            this.createGraphic(result.features, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
-            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_INTERSECT_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length : 'INTERSECT_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length));
+                this.createGraphic(result.features, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
+                (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_INTERSECT_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length : 'INTERSECT_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length))
         })
     })          
     })}; 
 
     createGraphic(graphics, fields, geometryType, Name){
-        loadModules(["esri/Graphic","esri/layers/FeatureLayer", "esri/renderers/Renderer"]).then(([Graphic, FeatureLayer, Renderer]) => {  
-            if(geometryType === "point"){
-                var openSpacesRenderer = {
-                    "type": "simple",
-                    "symbol": {
-                        "color": [
-                            0, 217, 255
-                        ],
-                        "type": "simple-marker"
-                        }
-                    }         
-                var featureLayer = new FeatureLayer({
-                    id: 'PrivateCreateLayer' + Name,
-                    source: graphics,
-                    fields: fields,
-                    geometryType: "point",
-                    outFields: ["*"],
-                    renderer: openSpacesRenderer
-                });
-                
-                this.props.map.add(featureLayer);         
-                
-                this.setState({showTableFlag: true})
-            } 
-            else if(geometryType === "polygon"){
-                var openSpacesRenderer = {
-                    "type": "simple",
-                    "symbol": {
-                        "color": [
-                            0, 217, 255
-                        ],
-                        "outline": {
-                            "width": 1
-                        },
-                        "type": "simple-fill",
-                        "style": "solid"
-                        }
-                    }         
-                var featureLayer = new FeatureLayer({
-                    id: 'PrivateCreateLayer' + Name,
-                    source: graphics,
-                    fields: fields,
-                    geometryType: "polygon",
-                    outFields: ["*"],
-                    renderer: openSpacesRenderer,
-                    opacity: 0.5
-                });
-                this.props.map.add(featureLayer);         
-                
-                this.setState({showTableFlag: true})
-            }
-            else if(geometryType === "polyline"){
-                var openSpacesRenderer = {
-                    "type": "simple",
-                    "symbol": {
-                        "color": "lightblue",
-                        "width": "2px",
-                        "type": "simple-line",
-                        "style": "solid"
-                      }
-                    }         
-                var featureLayer = new FeatureLayer({
-                    id: 'PrivateCreateLayer' + Name,
-                    source: graphics,
-                    fields: fields,
-                    geometryType: "polyline",
-                    outFields: ["*"],
-                    renderer: openSpacesRenderer,
-                });
-                this.props.map.add(featureLayer);         
-                
-                this.setState({showTableFlag: true})
-            }
-           this.props.updateLayersArray();
-    })}
+        this.createFeatureLayer(graphics, fields, geometryType, Name).then((result) => {
+            this.props.map.add(result);
+            this.props.updateLayersArray();
+        })        
+    }
 
     convertCoords(points){
         var result = loadModules(["esri/geometry/support/webMercatorUtils"]).then(([webMercatorUtils]) => { 

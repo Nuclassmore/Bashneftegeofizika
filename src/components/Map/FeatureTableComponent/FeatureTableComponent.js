@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import './FeatureTableComponent.css';
+import {createFeatureLayer} from '../../../utils/Create';
 
 export default class FeatureTableComponent extends Component {
 	constructor(props){
@@ -13,7 +14,8 @@ export default class FeatureTableComponent extends Component {
             serchValue: "",
             selectedObjects: [],
             selectedObjectsIds: [],
-            filteredSelectedObjects: []
+            filteredSelectedObjects: [],
+            idField: ""
 		}
         this.closeThis = this.closeThis.bind(this);
         this.moveArrayForward= this.moveArrayForward.bind(this);
@@ -33,11 +35,14 @@ export default class FeatureTableComponent extends Component {
         this.changeTab = this.changeTab.bind(this);
         this.downLoadCSV = this.downLoadCSV.bind(this);
         this.handleCntrlClick = this.handleCntrlClick.bind(this);
+        this.selectOnLayer = this.selectOnLayer.bind(this);
+        this.createFeatureLayer = createFeatureLayer.bind(this);
     }
 
     
     componentWillMount() {
-        this.setState({featuresList: this.props.tableShowData, filteredFeatures: this.props.tableShowData}, ()=>{
+        var idField = this.props.tableItemsFieldName.filter(field => field.type == "oid")[0]
+        this.setState({featuresList: this.props.tableShowData, filteredFeatures: this.props.tableShowData,idField: idField["alias"] }, ()=>{
             var end = this.state.filteredFeatures.length > 100 ? 100 : this.state.filteredFeatures.length;
             this.setState({showItemsEnd: end});
         })
@@ -86,11 +91,24 @@ export default class FeatureTableComponent extends Component {
 
     handleCntrlClick(event, id, item){
         event.stopPropagation();
-     
-        if (event.ctrlKey && this.state.tab == "base" && !this.state.selectedObjectsIds.includes(id)) {            
-            this.state.selectedObjectsIds.push(id)
-            this.state.selectedObjects.push(item)
-            this.setState({filteredSelectedObjects: this.state.selectedObjects})
+        if(id != undefined && item)
+        {
+            if(event.ctrlKey && this.state.tab == "base" && !this.state.selectedObjectsIds.includes(id)) 
+            {            
+                this.state.selectedObjectsIds.push(id)
+                this.state.selectedObjects.push(item)
+                this.setState({filteredSelectedObjects: this.state.selectedObjects})
+            }
+            else if(this.state.selectedObjectsIds.includes(id))
+            {
+                var idIndex = this.state.selectedObjectsIds.indexOf(id)
+                delete this.state.selectedObjectsIds[idIndex]
+                var objectIndex = this.state.selectedObjects.indexOf(item)
+                delete this.state.selectedObjects[objectIndex]
+            }
+        }
+        else{
+            window.alert("У данного объекта нет идентификатора")
         }
      }
 
@@ -111,12 +129,13 @@ export default class FeatureTableComponent extends Component {
                         </tr>
                     </thead>
                     <tbody>
-                    {list.map((item, index) => {return <tr key={index} id={this.state.tab + item.attributes['FID']} style={{'background': this.state.selectedObjectsIds.filter(obj => obj == item.attributes['FID']).length > 0 && this.state.tab == 'base' ? 'rgba(255, 255, 255, 0.5)' : '' }} onClick={($event) => this.handleCntrlClick($event, item.attributes['FID'], item)} >{Object.keys(item.attributes).map((keyName, index) => {return <td key={index}>{item.attributes[keyName]}</td>})}</tr>})}
+                    {list.map((item, index) => {return <tr key={index} id={this.state.tab + item.attributes[this.state.idField]} style={{'background': this.state.selectedObjectsIds.filter(obj => obj == item.attributes[this.state.idField]).length > 0 && this.state.tab == 'base' ? 'rgba(255, 255, 255, 0.5)' : '' }} onClick={($event) => this.handleCntrlClick($event, item.attributes[this.state.idField], item)} >{Object.keys(item.attributes).map((keyName, index) => {return <td key={index}>{item.attributes[keyName]}</td>})}</tr>})}
                     </tbody>
                 </table>   
-                <div className="FeatureTable__CurrentTable" ref="base" style={{ 'background' : this.state.tab == "base" ? 'rgba(96, 102, 114, 0.6)' : ''}} onClick={() => this.changeTab("base")}>Таблица</div>  
-                <div className="FeatureTable__SelectTable" ref="select" style={{ 'background' : this.state.tab == "select" ? 'rgba(96, 102, 114, 0.6)' : ''}} onClick={() => this.changeTab("select")}>Выбранные</div>  
-                <div className="FeatureTable__DownloadExcel" onClick={() => this.downLoadCSV()}>Скачать таблицу</div>  
+                <div className="FeatureTable__CurrentTable" ref="base" style={{ 'background' : this.state.tab == "base" ? 'rgba(96, 102, 114, 0.6)' : '', 'boxShadow': this.state.tab == "base" ? 'inset 0 -1px 4px 1px white' : 'none'}} onClick={() => this.changeTab("base")}>Таблица</div>  
+                <div className="FeatureTable__SelectTable" ref="select" style={{ 'background' : this.state.tab == "select" ? 'rgba(96, 102, 114, 0.6)' : '', 'boxShadow': this.state.tab == "select" ? 'inset 0 -1px 4px 1px white' : 'none'}} onClick={() => this.changeTab("select")}>Выбранные</div> 
+                <div className="FeatureTable__BottomButton" onClick={() => this.selectOnLayer()}>Выделить на карте</div>   
+                <div className="FeatureTable__BottomButton" onClick={() => this.downLoadCSV()}>Скачать таблицу</div>  
                 </div>
                 <div className="FeatureTable__ButtonsBlock">
                     <span className="FeatureTable__Back" style={{visibility: this.state.showItemsStart == 0 ? 'hidden' : 'visible'}} onClick={() => this.moveArrayBack()}>Назад</span>        
@@ -135,6 +154,19 @@ export default class FeatureTableComponent extends Component {
     moveArrayBack(){
         this.setState({showItemsEnd: this.state.showItemsEnd - 100 > 0 ? this.state.showItemsEnd - 100 : this.state.showItemsEnd})
         this.setState({showItemsStart: this.state.showItemsEnd - 100 > 0 ? this.state.showItemsStart - 100 : this.state.showItemsStart})
+    }
+
+    selectOnLayer(){
+        if(this.state.tab == "base"){
+            this.createFeatureLayer(this.state.filteredFeatures, this.props.tableItemsFieldName.filter(field => field.alias != 'Shape'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
+                this.props.map.add(result);
+            })
+        }
+        else if(this.state.tab == "select"){
+            this.createFeatureLayer(this.state.filteredSelectedObjects, this.props.tableItemsFieldName.filter(field => field.alias != 'Shape'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
+                this.props.map.add(result);
+            })
+        }
     }
 
     changeTab(tabId){

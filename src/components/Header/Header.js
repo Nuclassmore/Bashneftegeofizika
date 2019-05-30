@@ -19,8 +19,8 @@ export default class Header extends Component {
         	{this.props.showToolsMenu && <div className={this.props.itemHoverToogle} onClick={this.openToolMenu}><span className="navbar__itemTitle">Инструменты</span></div>}
         	{this.props.hideForm && (<MenuToolSet hideThis={this.openToolMenu} openThisTool={(value) => this.openTool(value)}></MenuToolSet>)}
         	</div>
-			{this.props.showToolsMenu && <div className="header-button" onClick={() => this.showForm("LayersListForm")}>Слои</div>}
-			{this.props.showToolsMenu && <div className="header-button" onClick={() => this.showForm("AddServiceForm")}>Добавить слой</div>}
+			{this.props.showToolsMenu && <div className="header-button" onClick={() => this.showForm("LayersListForm")}><div className="header-button__LayerIcon"></div>Слои</div>}
+			{this.props.showToolsMenu && <div className="header-button" onClick={() => this.showForm("AddServiceForm")}><div className="header-button__Plus"></div>Добавить слой</div>}
         	{/* <div className="header-button">Выход</div> */}
         	</div>
         )
