@@ -138,8 +138,13 @@
   margin: 2px;
 }
 
-.WorkArea__ChooseLayers{
+.WorkArea__ChooseLayersTable table{
+  width: 100%;
+}
 
+.WorkArea__ChooseLayersTable{
+  max-height: 100px;
+  overflow-y: auto;
 }
 
 .WorkArea__SelectBox{
@@ -221,9 +226,10 @@
 
 .WorkArea__ResultBottomLeft{
   position: fixed;
-  bottom: 20px;
+  left: calc(50% - 200px);
+  top: 25%;
   width: 400px;
-  height: 56px;
+  height: auto;
   background-color: rgba(0,0,0,0.8);
   border-radius: 10px;
   box-shadow: 0 0 30px rgba(0,0,0,0.5);
@@ -240,6 +246,7 @@
   font-size: 14px;
   float: left;
   padding: 0 10px 10px;
+  display: inline;
 }
 
 .WorkArea__ResultBottomLeft div{
@@ -247,6 +254,7 @@
 }
 
 .Form__FullScreen{
+  display: block !important;
   position: absolute;
   padding: 0 !important;
   display: inline-block;
@@ -259,4 +267,12 @@
   background-position: center;
   background-size: contain;
 	cursor: pointer;
+}
+
+.ResultText__Clip{
+  color: lawngreen !important;
+}
+
+.ResultText__Intersect{
+  color: cyan !important;
 }

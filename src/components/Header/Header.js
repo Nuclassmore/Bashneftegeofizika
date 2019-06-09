@@ -20,7 +20,7 @@ export default class Header extends Component {
         	{this.props.hideForm && (<MenuToolSet hideThis={this.openToolMenu} openThisTool={(value) => this.openTool(value)}></MenuToolSet>)}
         	</div>
 			{this.props.showToolsMenu && <div className="header-button" onClick={() => this.showForm("LayersListForm")}><div className="header-button__LayerIcon"></div>Слои</div>}
-			{this.props.showToolsMenu && <div className="header-button" onClick={() => this.showForm("AddServiceForm")}><div className="header-button__Plus"></div>Добавить слой</div>}
+			{this.props.showToolsMenu && <div className="header-button" onClick={() => this.showForm("AddServiceForm")}><div className="header-button__Plus"></div>Добавить сервис</div>}
         	{/* <div className="header-button">Выход</div> */}
         	</div>
         )

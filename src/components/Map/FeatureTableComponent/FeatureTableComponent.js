@@ -15,7 +15,8 @@ export default class FeatureTableComponent extends Component {
             selectedObjects: [],
             selectedObjectsIds: [],
             filteredSelectedObjects: [],
-            idField: ""
+            idField: "",
+            selectedLayer: false
 		}
         this.closeThis = this.closeThis.bind(this);
         this.moveArrayForward= this.moveArrayForward.bind(this);
@@ -37,6 +38,7 @@ export default class FeatureTableComponent extends Component {
         this.handleCntrlClick = this.handleCntrlClick.bind(this);
         this.selectOnLayer = this.selectOnLayer.bind(this);
         this.createFeatureLayer = createFeatureLayer.bind(this);
+        this.unselectObjects = this.unselectObjects.bind(this);
     }
 
     
@@ -134,12 +136,13 @@ export default class FeatureTableComponent extends Component {
                 </table>   
                 <div className="FeatureTable__CurrentTable" ref="base" style={{ 'background' : this.state.tab == "base" ? 'rgba(96, 102, 114, 0.6)' : '', 'boxShadow': this.state.tab == "base" ? 'inset 0 -1px 4px 1px white' : 'none'}} onClick={() => this.changeTab("base")}>Таблица</div>  
                 <div className="FeatureTable__SelectTable" ref="select" style={{ 'background' : this.state.tab == "select" ? 'rgba(96, 102, 114, 0.6)' : '', 'boxShadow': this.state.tab == "select" ? 'inset 0 -1px 4px 1px white' : 'none'}} onClick={() => this.changeTab("select")}>Выбранные</div> 
-                <div className="FeatureTable__BottomButton" onClick={() => this.selectOnLayer()}>Выделить на карте</div>   
+                {!this.state.selectedLayer && <div className="FeatureTable__BottomButton" onClick={() => this.selectOnLayer()}>Выделить на карте</div>}
+                {this.state.selectedLayer && <div className="FeatureTable__BottomButton" onClick={() => this.unselectObjects()}>Снять выделение</div>} 
                 <div className="FeatureTable__BottomButton" onClick={() => this.downLoadCSV()}>Скачать таблицу</div>  
                 </div>
                 <div className="FeatureTable__ButtonsBlock">
-                    <span className="FeatureTable__Back" style={{visibility: this.state.showItemsStart == 0 ? 'hidden' : 'visible'}} onClick={() => this.moveArrayBack()}>Назад</span>        
-                    <span className="FeatureTable__Forward" style={{visibility: listType.length > this.state.showItemsEnd ? 'visible' : 'hidden'}} onClick={() => this.moveArrayForward()}>Вперед</span>       
+                    <span className="FeatureTable__Back" style={{visibility: this.state.showItemsStart == 0 ? 'hidden' : 'visible'}} onClick={() => this.moveArrayBack()}></span>        
+                    <span className="FeatureTable__Forward" style={{visibility: listType.length > this.state.showItemsEnd ? 'visible' : 'hidden'}} onClick={() => this.moveArrayForward()}></span>       
                 </div>
             </div>
             )	
@@ -156,17 +159,28 @@ export default class FeatureTableComponent extends Component {
         this.setState({showItemsStart: this.state.showItemsEnd - 100 > 0 ? this.state.showItemsStart - 100 : this.state.showItemsStart})
     }
 
+    unselectObjects(){
+        if(this.state.selectedLayer)
+        {
+            this.props.removeLayer('PrivateCreateLayerPrivateSelect_object')
+            if(!this.props.map.findLayerById('PrivateCreateLayerPrivateSelect_object'))
+                this.setState({selectedLayer: false})
+        }
+    }
+
     selectOnLayer(){
         if(this.state.tab == "base"){
             this.createFeatureLayer(this.state.filteredFeatures, this.props.tableItemsFieldName.filter(field => field.alias != 'Shape'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
                 this.props.map.add(result);
+                this.setState({selectedLayer: true})
             })
         }
         else if(this.state.tab == "select"){
             this.createFeatureLayer(this.state.filteredSelectedObjects, this.props.tableItemsFieldName.filter(field => field.alias != 'Shape'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
                 this.props.map.add(result);
+                this.setState({selectedLayer: true})
             })
-        }
+        }        
     }
 
     changeTab(tabId){
@@ -355,7 +369,7 @@ export default class FeatureTableComponent extends Component {
     downLoadCSV(){
         var JSONData = [];        
 
-        var downloadData = this.state.tab == "base" ? this.state.featuresList : this.state.filteredFeatures
+        var downloadData = this.state.tab == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
 
         downloadData.forEach(element => {
             Object.keys(element.attributes).forEach(item => {
@@ -420,6 +434,7 @@ export default class FeatureTableComponent extends Component {
     } 
 
     closeThis(){
+        this.props.removeLayer('PrivateCreateLayerPrivateSelect_object')
         this.props.closeForm("FeatureTable");
     }
 }

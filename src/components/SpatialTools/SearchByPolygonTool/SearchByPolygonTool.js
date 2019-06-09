@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
-import './WorkAreasSearchByPolygonTool.css';
+import './SearchByPolygonTool.css';
 import {getAllFeatures} from '../../../services/Feature.service';
 import { loadModules } from '@esri/react-arcgis'
 import {createFeatureLayer} from '../../../utils/Create';
 
 
-export default class WorkAreasSearchByPolygonTool extends Component {
+export default class SearchByPolygonTool extends Component {
 	constructor(props){
 		super(props);
 		this.state = {
@@ -18,9 +18,11 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             longitude: "",
             collapseMethod: "CoordsMethod",
             selectValue: "select",
-            resultOpenModal: false,
-            lengthSumm: 0,
-            allfeatures: []
+            resultOpenModal: true,
+            lengthSummClip: 0,
+            lengthSummIntersect: 0,
+            allfeatures: [],
+            selectedLayers: []
 		}
         this.getAllFeatures = getAllFeatures.bind(this);
         this.closeThis = this.closeThis.bind(this);
@@ -37,6 +39,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
         this.openModalCenter = this.openModalCenter.bind(this);
         this.featureGet = this.featureGet.bind(this);
         this.createFeatureLayer = createFeatureLayer.bind(this);
+        this.removeSelectLayer = this.removeSelectLayer.bind(this);
     }
 
     componentDidMount(){
@@ -44,12 +47,9 @@ export default class WorkAreasSearchByPolygonTool extends Component {
     }
 
     onChangeSelect(e){
-        this.setState({selectValue: e.target.value})
+        if(!this.state.selectedLayers.includes(e.target.value))
+            this.setState({selectValue: e.target.value.split(';')[0], selectedLayers: this.state.selectedLayers.concat(e.target.value)})
     }
-    
-    // handleChange(event) {
-    //     this.setState({input: event.target.value});
-    // }
 
     handleChangeLatitude(event) {
         this.setState({latitude: event.target.value});
@@ -80,20 +80,21 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                         <div className="select__Label">Выбрать слой</div>
                         <select value={this.state.selectValue} onChange={this.onChangeSelect} className="WorkArea__SelectBox">
                             <option value="select">Выбрать</option>
-                            {this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer') && !layer.id.includes('PrivateSelect')) return <option key={index} value={index}> {layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', '') } </option>})}
+                            {this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer') && !layer.id.includes('PrivateSelect')) return <option key={index} value={layer.id + ";" + (layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', ''))}> {layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', '') } </option>})}
                         </select>
+                        <div className="WorkArea__ChooseLayersTable"><table><tbody>{this.state.selectedLayers.length ? this.state.selectedLayers.map((layer, index) => {return <tr key={layer.split(';')[0] + index} ><td style={{fontSize: 18 + 'px', display: 'inline'}}>{layer.split(';')[1]}</td><td style={{display: 'table-cell'}}><div className="Form__button" onClick={()=>this.removeSelectLayer(layer)}>Удалить</div></td></tr>}) : <tr className="WorkArea__backtext"><td></td></tr> }</tbody></table></div>
                     </div>
-                    {/* <input className="Form__input" value={this.state.input} onChange={this.handleChange} placeholder="11.11,22.22;33.44,55.66;77.88,99.00;11.11,22.22"/> */}
                     {this.state.showError && <span className="Error__message">*Введены не корректные данные</span>}
                 <div className="Form__Buttons__Block">
                     <div className="Form__button" onClick={this.findFeatures}>Поиск</div>
                 </div>
-                {this.state.lengthSumm != 0 && <div className="WorkArea__ResultBottomLeft">
+                {(this.state.lengthSummClip != 0 || this.state.lengthSummIntersect != 0) && <div className="WorkArea__ResultBottomLeft">
                     <span className="Form__FullScreen" onClick={this.openModalCenter}></span>
                     <h5>Рузультат выполнения инструмента:</h5>
-                    <div>
-                        <span>Сумма профилей внутри полигона: {this.state.lengthSumm} метров</span>                        
-                    </div>
+                    {this.state.resultOpenModal && <div>
+                        <span>Сумма профилей внутри полигона:<br></br> <span className="ResultText__Clip">{this.state.lengthSummClip}</span> метров </span>       
+                        <span>Сумма профилей пересекающихся с полигоном:<br></br> <span className="ResultText__Intersect">{this.state.lengthSummIntersect}</span> метров </span>                     
+                    </div>}
                 </div>}
         	</div>
             )	
@@ -128,6 +129,10 @@ export default class WorkAreasSearchByPolygonTool extends Component {
         this.setState({pointCollection: collect})
     }
 
+    removeSelectLayer(id){
+        this.setState({selectedLayers: this.state.selectedLayers.filter(layer => layer != id)})
+    }
+
     removeGraphic(index, method){
         if(method == undefined)
             this.props.removeGraphics(index, "MouseMethod");
@@ -142,10 +147,6 @@ export default class WorkAreasSearchByPolygonTool extends Component {
     //-100.78, 32.3;-66.07, 68.45;-80.21, 25.78;-64.78, 32.3
 
     findFeatures(){
-        // var vertixes = this.state.input.replace(/ /g, '');
-        // var splitedVert = [];
-        // vertixes.split(';').forEach(item => splitedVert.push(item.split(',')));    
-        // this.setState({vertixes: splitedVert}, () => {
             var vertixes = [];
             if(this.state.collapseMethod == "CoordsMethod" && this.state.pointCollection != [] && this.state.selectValue != "select"){
                 this.state.pointCollection.forEach(point => {
@@ -210,16 +211,16 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             }   
             else{
                 this.setState({showError: true})
-            }            
-            //});
+            }         
         }
         
     filterPolygonsByPolygon(filterLayer){
         loadModules([
-        "esri/layers/FeatureLayer","esri/symbols/SimpleFillSymbol","esri/geometry/geometryEngine", "esri/Graphic"]).then(([FeatureLayer, SimpleFillSymbol, geometryEngine, Graphic]) => {
-        // var layers = this.props.map.layers.items.filter(item => item.id != "GraphicLayer" && (item.id.includes("featureLayer") || item.id.includes("searchAreaLayer")))  
+        "esri/layers/FeatureLayer","esri/symbols/SimpleFillSymbol","esri/geometry/geometryEngine", "esri/Graphic"]).then(([FeatureLayer, SimpleFillSymbol, geometryEngine, Graphic]) => {       
         var layers = [];
-        layers.push(this.props.map.layers.items[this.state.selectValue])        
+        this.state.selectedLayers.forEach(layer => {
+            layers.push(this.props.map.findLayerById(layer.split(';')[0]))    
+        })            
         layers.forEach((layer)=>{  
             if(layer.geometryType === "polyline" && filterLayer.type === "polygon"){  
                 var fields = layer.fields;
@@ -231,14 +232,14 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                 layer.queryFeatures(query)
                 .then((response) => {
                     this.setState({allfeatures: response.features});
-                    this.setState({lengthSumm: 0})
+                    this.setState({lengthSummClip: 0, lengthSummIntersect: 0, resultOpenModal: true})
                     response.features.forEach((feat)=>
                         {
                             if(geometryEngine.intersects(feat.geometry, filterLayer))
                             {
                                 var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
                                 intersectedGeom.attributes = feat.attributes;
-                                this.state.lengthSumm = this.state.lengthSumm + geometryEngine.geodesicLength(intersectedGeom, "meters");
+                                this.state.lengthSummClip = this.state.lengthSummClip + geometryEngine.geodesicLength(intersectedGeom, "meters");
                                 resultFeatures.push(intersectedGeom);
                             }
                         })
@@ -250,8 +251,8 @@ export default class WorkAreasSearchByPolygonTool extends Component {
                             });   
                                 graphics.push(graphic); 
                             }) 
-                            this.createGraphic(graphics, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
-                            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_CLIP_' + this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length : 'CLIP_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length));
+                            this.createGraphic(graphics, fields.filter(field => field.type != 'geometry'), layer.geometryType, 
+                            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_CLIP_' + this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length : 'CLIP_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length), 'lawngreen');
                             // if(response.features.length == layer.maxRecordCount){
                             //    this.featureGet(response.features[response.features.length - 1].attributes["FID"]).then(all => {
                             //         all.forEach((feat)=>{
@@ -273,7 +274,13 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             queryCros.geometry = filterLayer;
             queryCros.returnGeometry = true;
             layer.queryFeatures(queryCros).then((result) => {
-                this.createGraphic(result.features, fields.filter(field => field.alias != 'Shape'), layer.geometryType, 
+                if(layer.geometryType === 'polyline'){
+                    result.features.forEach((feat)=>
+                        {
+                                this.state.lengthSummIntersect = this.state.lengthSummIntersect + geometryEngine.geodesicLength(feat.geometry, "meters");
+                        })
+                    }
+                this.createGraphic(result.features, fields.filter(field => field.type != 'geometry'), layer.geometryType, 
                 (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_INTERSECT_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length : 'INTERSECT_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length))
         })
     })          
@@ -325,6 +332,7 @@ export default class WorkAreasSearchByPolygonTool extends Component {
             elem.style.left = 'auto';
             elem.style.top = 'auto';
             elem.style.height = '56px';
+            elem.style.bottom= '20px';
         }
     }
 

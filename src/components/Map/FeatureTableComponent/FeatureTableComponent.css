@@ -1,14 +1,15 @@
 .FeatureTable__Block{
-    width: 60%;
-	height: 80%;
-	min-height: max-content;
-    margin: 5% 20% 0;
-	background-color: rgba(0,0,0,0.8);
-	border-radius: 10px;
-	position: absolute;
-	box-shadow: 0 0 30px rgba(0,0,0,0.5);
-	z-index: 99;
-	top: 0;
+	width: 100%;
+    height: 30%;
+    bottom: 0;
+    min-height: -webkit-max-content;
+    min-height: -moz-max-content;
+    min-height: max-content;
+    background-color: rgba(0,0,0,0.8);
+    border-radius: 10px 10px 0 0;
+    position: absolute;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    z-index: 99;
     text-align: center;
 }
 .FeatureTable__Table{
@@ -34,17 +35,17 @@
 .FeatureTable__Table th{
 	font-weight: normal;
 	color: #039;
-	padding: 10px 15px;
+	padding: 5px 15px;
 }
 
 .FeatureTable__Table td{
-	padding: 10px 15px;
+	padding: 5px 15px;
 	cursor: default;
 }
 
 .FeatureTable__Table thead td{
 	border: 1px solid white;
-	padding: 10px 15px;
+	padding: 5px 15px;
 }
 
 .FeatureTable__Table tbody tr:hover{
@@ -53,17 +54,39 @@
 
 .FeatureTable__Back{
 	float: left;
-	margin: 0 20px 10px;
 	font-size: 20px;
 	cursor: pointer;
 }
 
+.FeatureTable__Back::after{	
+	position: absolute;
+    content: '\f060';
+    font-family: "Font Awesome\ 5 Free";
+    font-weight: 900;
+    width: 10px;
+    height: 10px;
+    border: none;
+    margin-left: 0.3em;
+    vertical-align: top;
+}   
+
 .FeatureTable__Forward{	
 	float: right;
-	margin: 0 20px;
+	margin: 0 28px;
 	font-size: 20px;
 	cursor: pointer;
-}
+}  
+.FeatureTable__Forward::after{	
+	position: absolute;
+    content: '\f061';
+    font-family: "Font Awesome\ 5 Free";
+    font-weight: 900;
+    width: 10px;
+    height: 10px;
+    border: none;
+    margin-left: 0.3em;
+    vertical-align: top;
+}   
 
 .FeatureTable__BottomButton{
 	border: 1px solid white;
@@ -73,7 +96,7 @@
 	float: right;
 	margin: -1px 28px 0 0;
 	padding: 0 2px;
-	cursor: default;
+	cursor: default;	
 }
 
 .FeatureTable__BottomButton:hover{
@@ -99,9 +122,9 @@
 }
 
 .FeatureTable__ButtonsBlock{
+	width: 100%;
+	top: 50%;
 	position: absolute;
-    width: 100%;
-    bottom: 0;
 }
 
 .FeatureTable__CurrentTable{

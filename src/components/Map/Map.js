@@ -4,8 +4,11 @@ import ReactDOM from 'react-dom';
 import { Map } from '@esri/react-arcgis';
 import FeatureTableComponent from './FeatureTableComponent/FeatureTableComponent';
 import LayersListComponent from './LayersListComponent/LayersListComponent';
-import WorkAreasSearchByPolygonTool from '../SpatialTools/WorkAreasSearchByPolygonTool/WorkAreasSearchByPolygonTool';
+import SearchByPolygonTool from '../SpatialTools/SearchByPolygonTool/SearchByPolygonTool';
 import { loadModules } from '@esri/react-arcgis';
+import CircularJSON from 'circular-json';
+import { resolve } from 'q';
+
 
 export default class MapContainer extends Component {
 	constructor(props){
@@ -32,7 +35,12 @@ export default class MapContainer extends Component {
             layers: [],
             graphicLayer: {},
             layerName: "",
-            tableGeometryType: ""
+            tableGeometryType: "",
+            selectServiceValue: "select",
+            services: [],
+            serviceLayers: [],
+            selectServiceLayerValue: "select",
+            layerPath: ""
         }
         
         this.handleMapLoad = this.handleMapLoad.bind(this);
@@ -49,8 +57,50 @@ export default class MapContainer extends Component {
         this.removeGraphics = this.removeGraphics.bind(this);   
         this.updateLayersArray = this.updateLayersArray.bind(this);
         this.removeLayer = this.removeLayer.bind(this);
+        this.zoomToLayer = this.zoomToLayer.bind(this);
+        this.onChangeServiceSelect = this.onChangeServiceSelect.bind(this);
+        this.getServicesLayerv = this.getServicesLayer.bind(this);
+        this.onChangeServiceLayerSelect = this.onChangeServiceLayerSelect.bind(this);
+        this.checkService = this.checkService.bind(this);
     }  
+
     
+    handleChangePath(event) {
+        this.setState({servicePath: event.target.value, services: [], serviceLayers: []});
+        if(event.target.value.includes('services'))
+            this.getServices();
+        else{
+            this.setState({services: []})
+        }
+    }
+
+    handleMapLoad(map, view) {
+    	this.setState({status: "loaded"});
+        this.setState({ map, view }, () => {
+            if(localStorage.getItem("myLocalLayersUrlStorage"))
+            {
+                var urls = JSON.parse(localStorage.getItem("myLocalLayersUrlStorage"));
+                if(urls.length > 0)
+                    {
+                        var promises = [];
+                        urls.forEach(url => promises.push(this.addServiceLayer(url.url, false, url.id)))
+                        Promise.all(promises).then(() => {
+                            this.props.showHeadersTools();
+                            this.props.addFeatureLayerService()
+                        })
+                    }
+            }
+        });    
+    }
+    
+    onChangeServiceLayerSelect(e){
+        this.setState({selectServiceLayerValue: e.target.value, layerPath: e.target.value});
+    }
+
+    onChangeServiceSelect(e){
+        this.setState({selectServiceValue: e.target.value}, () => this.getServicesLayer());        
+    }
+
     _onMouseMove(e) {
         this.setState({ y: e.screenX - 10, x: e.screenY - 10});
       }
@@ -67,36 +117,60 @@ export default class MapContainer extends Component {
 
     render() {
         return (
-            <div className="Map" onMouseMove={this._onMouseMove.bind(this)}>                       
-            <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/themes/light/main.css"/>
+            <div className="Map" onMouseMove={this._onMouseMove.bind(this)}>                      
             	{this.state.status === "loading" && (<div className="load__page"><div className="logo__load"></div></div>)}
             	
-                <Map mapProperties={{ basemap: 'satellite' }}
+                <Map mapProperties={{ basemap: 'topo' }}
     			    	viewProperties={this.state.viewProperties} 
     			        onLoad={this.handleMapLoad} onClick={this.startDrawPolygon} onDoubleClick = {(evt)=>this.endPolygonDraw(evt)} >   
                 </Map>               
                 
-                {this.props.workToolId === "firstTool" && <WorkAreasSearchByPolygonTool closeForm={(id) => this.closeForm(id)} map = {this.state.map} removeGraphics = {(index, method) => this.removeGraphics(index, method)} 
+                {this.props.workToolId === "firstTool" && <SearchByPolygonTool closeForm={(id) => this.closeForm(id)} map = {this.state.map} removeGraphics = {(index, method) => this.removeGraphics(index, method)} 
                 selectPolygonCollection = {this.state.map.findLayerById("GraphicLayer") ? this.state.map.findLayerById("GraphicLayer").graphics.items : []} 
-                startDrawPolygon={(flag)=>this.startDrawPolygonTolltip(flag)} LayersList = {this.state.layers} updateLayersArray = {this.updateLayersArray}></WorkAreasSearchByPolygonTool>}
+                startDrawPolygon={(flag)=>this.startDrawPolygonTolltip(flag)} LayersList = {this.state.layers} updateLayersArray = {this.updateLayersArray}></SearchByPolygonTool>}
                 
-                {this.props.workToolId === "attributeTable" && <FeatureTableComponent tableGeometryType = {this.state.tableGeometryType} layerName = {this.state.layerName} map = {this.state.map} tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)}></FeatureTableComponent>} 
+                {this.props.workToolId === "attributeTable" && <FeatureTableComponent tableGeometryType = {this.state.tableGeometryType} layerName = {this.state.layerName} map = {this.state.map} tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)} removeLayer = {(id) => this.removeLayer(id)}></FeatureTableComponent>} 
                 
-                {this.props.showLayersListForm && <LayersListComponent openTable = {(id) => this.showTable(id)} removeLayer={(id) => this.removeLayer(id)} LayersList = {this.state.layers} toggleLayer={(layerId, flag, index) => this.toggleLayer(layerId, flag, index)}></LayersListComponent>}
-                
-                {/* Добавление при входе */}
+                {this.props.showLayersListForm && <LayersListComponent openTable = {(id) => this.showTable(id)} removeLayer={(id) => this.removeLayer(id)} LayersList = {this.state.layers} toggleLayer={(layerId, flag, index) => this.toggleLayer(layerId, flag, index)} zoomToLayer = {(id) => this.zoomToLayer(id)} ></LayersListComponent>}
+
+
+                {/* Добавление сервиса при входе */}
                 {!this.props.showLayer && this.state.status === "loaded" && <div className="AddLayer__Form"> 
-                <h5>Введите адрес сервиса пространственных объектов</h5>
+                <h5>Введите адрес сервиса</h5>
+
                 <input className="Form__input" value={this.state.servicePath} onChange={this.handleChangePath} placeholder="Введите адрес"/>
-                <div className="Form__Buttons__Block"><div className="Form__button" onClick={this.addService}>Добавить слой</div></div>
+
+                {this.state.services.length > 0 && <select value={this.state.selectServiceValue} onChange={this.onChangeServiceSelect} className="WorkArea__SelectBox">
+                            <option value="select">Выбрать</option>
+                            {this.state.services.map((service, index) => {return <option key={index} value={service.url}>{service.name}</option>})}
+                </select>}
+
+                {this.state.serviceLayers.length > 0 && this.state.services.length > 0 && <select value={this.state.selectServiceLayerValue} onChange={this.onChangeServiceLayerSelect} className="WorkArea__SelectBox">
+                    <option value="select">Выбрать</option>
+                    {this.state.serviceLayers.map((layer, index) => {return <option key={layer.id + index} value={layer.url}>{layer.name}</option>})}
+                </select>}
+
+                <div className="Form__Buttons__Block"><div className="Form__button" onClick={this.addService}>Добавить сервис</div></div>
                 </div>}
 
-                {/* Простое Добавление */}
+                {/* Добавление сервиса */}
                 {this.props.showLayerAddForm && <div className="AddLayer__Form"> 
                 <span className="Form__Close" onClick={() => this.props.toggleForm("AddServiceForm")}></span>
                 <h5>Введите адрес сервиса пространственных объектов</h5>
+
                 <input className="Form__input" value={this.state.servicePath} onChange={this.handleChangePath} placeholder="Введите адрес"/>
-                <div className="Form__Buttons__Block"><div className="Form__button" onClick={this.addServiceLayer}>Добавить слой</div></div>
+
+                {this.state.services.length > 0 && <select value={this.state.selectServiceValue} onChange={this.onChangeServiceSelect} className="WorkArea__SelectBox">
+                            <option value="select">Выбрать</option>
+                            {this.state.services.map((service, index) => {return <option key={index} value={service.url}>{service.name}</option>})}
+                </select>}
+
+                {this.state.serviceLayers.length > 0 && this.state.services.length > 0 && <select value={this.state.selectServiceLayerValue} onChange={this.onChangeServiceLayerSelect} className="WorkArea__SelectBox">
+                    <option value="select">Выбрать</option>
+                    {this.state.serviceLayers.map((layer, index) => {return <option key={layer.id + index} value={layer.url}>{layer.name}</option>})}
+                </select>}
+
+                <div className="Form__Buttons__Block"><div className="Form__button" onClick={() => this.addServiceLayer()}>Добавить сервис</div></div>
                 </div>}
             </div>            
         )	    
@@ -105,7 +179,9 @@ export default class MapContainer extends Component {
     //линии https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/Florida_Annual_Average_Daily_Traffic/FeatureServer/0
     //полигоны https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer/3
     //точки https://services.arcgis.com/rOo16HdIMeOBI4Mb/arcgis/rest/services/Heritage_Trees_Portland/FeatureServer/0
-
+    // https://services6.arcgis.com/uynOyrEMiVAb2Kao/ArcGIS/rest/services/%D0%9B%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D0%BE%D0%BD%D0%BD%D1%8B%D0%B9_%D1%83%D1%87%D0%B0%D1%81%D1%82%D0%BE%D0%BA/FeatureServer/0
+    // https://services6.arcgis.com/uynOyrEMiVAb2Kao/ArcGIS/rest/services/%D0%A1%D0%BA%D0%B2%D0%B0%D0%B6%D0%B8%D0%BD%D1%8B/FeatureServer/0
+    // https://services6.arcgis.com/uynOyrEMiVAb2Kao/ArcGIS/rest/services/%D0%9F%D1%80%D0%BE%D1%84%D0%B8%D0%BB%D0%B8/FeatureServer/0
     startDrawPolygonTolltip(flag){
         if(flag === "on"){
             loadModules(["esri/widgets/Sketch","esri/layers/GraphicsLayer"]).then(([Sketch, GraphicsLayer]) => {
@@ -143,11 +219,22 @@ export default class MapContainer extends Component {
     removeLayer(layerId){
         try{
             this.state.map.remove(this.state.map.findLayerById(layerId));
-            this.updateLayersArray();
+            this.updateLayersArray(null, null, null, layerId);
         }
         catch{
             window.alert("Не удалось удалить слой")
         }
+    }
+
+    zoomToLayer(id){
+        var myFeatureLayer = this.state.map.findLayerById(id)
+        myFeatureLayer.queryExtent().then(rws => {
+            this.state.view.goTo({
+                target: rws.extent,
+                speedFactor: 0.1, 
+                easing: "out-quint"
+              })
+          })
     }
     
     removeGraphics(index, method){
@@ -156,76 +243,150 @@ export default class MapContainer extends Component {
         }
     }
 
-    addServiceLayer(){
-        loadModules(["esri/layers/FeatureLayer"]).then(([FeatureLayer]) => {
+    getServicesLayer(){        
+        loadModules(["esri/request"]).then(([esriRequest]) => {
+            var options = {
+                query: {
+                  f: "json"
+                },
+                responseType: "json"
+              };
+            esriRequest(this.state.selectServiceValue, options).then((response) => {
+                response.data.layers.forEach(lay => lay.url = this.state.selectServiceValue + '/' + lay.id)
+                this.setState({serviceLayers: response.data.layers.length > 0 ? response.data.layers : []})
+              });
+            })
+    }
+
+    getServices(){        
+        loadModules(["esri/request"]).then(([esriRequest]) => {
+            var options = {
+                query: {
+                  f: "json"
+                },
+                responseType: "json"
+              };
+            esriRequest(this.state.servicePath, options).then((response) => {
+                if(response.data.services && !response.data.services[0].url){
+                    var url = this.state.servicePath.trim()[this.state.servicePath.length - 1] != '/' ? this.state.servicePath.trim() + '/' : this.state.servicePath.trim()
+                    response.data.services = response.data.services.filter(serv => serv.type === "FeatureServer")
+                    response.data.services.forEach((service) => service.url = url + service.name + "/" + service.type)
+                }
+                this.setState({services: response.data.services.length > 0 ? response.data.services : [], selectServiceLayerValue: "select", selectServiceValue: 'select'})
+              });
+            })
+    }
+
+    checkService(url){
+        var req = loadModules(["esri/request"]).then(([esriRequest]) => {
+            var options = {
+                query: {
+                  f: "json"
+                },
+                responseType: "json"
+              };
+            var res = esriRequest(url, options).then((response) => {
+                    if(response.data.type === 'Feature Layer')
+                        return true
+                    else
+                        window.alert("Невозможно добавить слой на карту!")
+                }).then((result) => {return result}).catch(error => window.alert("Невозможно добавить слой на карту!"));
+                return res
+            })
+        return req
+    }
+
+    addServiceLayer(url, rewrite, id){          
+        if(this.state.serviceLayers.length > 0 && this.state.selectServiceLayerValue && this.state.selectServiceLayerValue != "select") {
+            url = this.state.selectServiceLayerValue            
+        }  
+        this.checkService(url ? url : this.state.servicePath).then((res) => {
+            if(res === true)
+            loadModules(["esri/layers/FeatureLayer"]).then(([FeatureLayer]) => {
                 var template = {
                     title: "Информация по объекту",
                     content: "{*}"
                 };
                 const myFeatureLayer = new FeatureLayer({
                     mode: FeatureLayer.MODE_ONDEMAND,
-                    id: 'PrivateCreateLayer' + "ServiceLayer-" + this.state.map.layers.items.length,
-                    url: this.state.servicePath,
+                    id: id ? id : 'PrivateCreateLayer' + "ServiceLayer-" + this.state.map.layers.items.length,
+                    url: url ? url : this.state.servicePath,
                     outFields: ["*"],
                     popupTemplate: template
                   });
                   
                 this.state.map.add(myFeatureLayer); 
-                this.updateLayersArray()
-                this.setState({servicePath: ""})
+                this.updateLayersArray(url ? url : this.state.servicePath, myFeatureLayer.id, rewrite)
             })
-            .then(() => {this.props.toggleForm("AddServiceForm")})
+            .then(() => {if(rewrite != false)this.props.toggleForm("AddServiceForm")})
             .catch((err) => console.error(err));
+        })        
     }
     
     addService(){
-        loadModules(["esri/layers/FeatureLayer"]).then(([FeatureLayer]) => {
-            var template = {
-                title: "Информация по объекту",
-                content: "{*}"
-              };
-            const myFeatureLayer = new FeatureLayer({
-                mode: FeatureLayer.MODE_ONDEMAND,
-                id: 'PrivateCreateLayer' + "ServiceLayer-" + this.state.map.layers.items.length,
-                url: this.state.servicePath,
-                outFields: ["*"],
-                popupTemplate: template
-              });
-            
-            this.state.map.add(myFeatureLayer); 
-            this.updateLayersArray();
-            this.setState({servicePath: ""})
+        this.checkService(this.state.selectServiceLayerValue != "select" ? this.state.selectServiceLayerValue : this.state.servicePath).then(res => {
+            if(res === true)
+            loadModules(["esri/layers/FeatureLayer"]).then(([FeatureLayer]) => {
+                var template = {
+                    title: "Информация по объекту",
+                    content: "{*}"
+                  };
+                const myFeatureLayer = new FeatureLayer({
+                    mode: FeatureLayer.MODE_ONDEMAND,
+                    id: 'PrivateCreateLayer' + "ServiceLayer-" + this.state.map.layers.items.length,
+                    url: this.state.selectServiceLayerValue != "select" ? this.state.selectServiceLayerValue : this.state.servicePath,
+                    outFields: ["*"],
+                    popupTemplate: template
+                  });
+                
+                this.state.map.add(myFeatureLayer); 
+                this.updateLayersArray(this.state.selectServiceLayerValue != "select" ? this.state.selectServiceLayerValue : this.state.servicePath, myFeatureLayer.id);
+            })
+            .then(() => {this.props.showHeadersTools();
+                        this.props.addFeatureLayerService()})
+            .catch((err) => console.error(err));                         
         })
-        .then(() => {this.props.showHeadersTools();
-                    this.props.addFeatureLayerService()})
-        .catch((err) => console.error(err));             
     }
 
-    updateLayersArray(){
+    updateLayersArray(url, id, rewrite, removeId){
         var layers = this.state.map.layers.items;
-        this.setState({layers: layers})
-    }
-
-    handleChangePath(event) {
-        this.setState({servicePath: event.target.value});
-    }
-
-    handleMapLoad(map, view) {
-    	this.setState({status: "loaded"});
-        this.setState({ map, view });    
+        this.setState({layers: layers}, () => {
+            if(url || removeId)
+            {
+                if(!localStorage.getItem("myLocalLayersUrlStorage")){
+                    var urls = []
+                    localStorage.setItem("myLocalLayersUrlStorage", JSON.stringify(urls))
+                }
+                if(rewrite != false && !removeId){
+                    var urls = JSON.parse(localStorage.getItem("myLocalLayersUrlStorage"))
+                    urls = urls.concat({id: id, url: url})
+                    localStorage.setItem("myLocalLayersUrlStorage", [])
+                    localStorage.setItem("myLocalLayersUrlStorage", JSON.stringify(urls))
+                }
+                if(removeId){
+                    var urls = JSON.parse(localStorage.getItem("myLocalLayersUrlStorage"))
+                    urls = urls.filter(url => url.id != removeId)
+                    localStorage.setItem("myLocalLayersUrlStorage", [])
+                    localStorage.setItem("myLocalLayersUrlStorage", JSON.stringify(urls))
+                }
+            }
+        })
     }
 
     showTable(LayerId){  
+        this.closeForm("FeatureTable");
+        this.removeLayer('PrivateCreateLayerPrivateSelect_object')
         if(this.props.workToolId === "firstTool"){
             this.startDrawPolygonTolltip('off')
         }
-        var myFeatureLayer = this.state.map.findLayerById(LayerId);   
+        var myFeatureLayer = this.state.map.findLayerById(LayerId);
+
         var query = myFeatureLayer.createQuery();
         query.outFields = ["*"]
         myFeatureLayer.queryFeatures(query)
-        .then((response) => {
+        .then((response) => {                       
             this.setState({tableItemsData: response.features,
-                tableItemsFieldName: myFeatureLayer.fields.filter(field => field.alias != 'Shape'),
+                tableItemsFieldName: myFeatureLayer.fields.filter(field => field.type != 'geometry'),
                 layerName: myFeatureLayer.source && myFeatureLayer.source.layerDefinition && myFeatureLayer.source.layerDefinition.name ? myFeatureLayer.source.layerDefinition.name : myFeatureLayer.id,
                 tableGeometryType: myFeatureLayer.geometryType
             }, ()=>{

@@ -13,6 +13,7 @@ export function createFeatureLayer(graphics, fields, geometryType, name, color =
                 "type": "simple",
                 "symbol": {
                     "color": layerColor,
+                    "size": "3px",
                     "type": "simple-marker"
                     }
                 }   

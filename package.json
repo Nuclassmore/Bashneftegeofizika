@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@esri/react-arcgis": "^4.0.0",
+    "circular-json": "^0.5.9",
     "fetch-helpers": "^9.0.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
@@ -11,7 +12,7 @@
     "react-scripts": "2.1.5"
   },
   "scripts": {
-    "deploy" : "aws s3 sync build/ s3://wonderful-quickstart",
+    "deploy": "aws s3 sync build/ s3://wonderful-quickstart",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
