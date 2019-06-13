@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import './SearchByPolygonTool.css';
 import {getAllFeatures} from '../../../services/Feature.service';
 import { loadModules } from '@esri/react-arcgis'
+import equal from 'fast-deep-equal'
 import {createFeatureLayer} from '../../../utils/Create';
 
 
@@ -19,10 +20,13 @@ export default class SearchByPolygonTool extends Component {
             collapseMethod: "CoordsMethod",
             selectValue: "select",
             resultOpenModal: true,
+            resultModal: false,
+            reportData: [],
             lengthSummClip: 0,
             lengthSummIntersect: 0,
             allfeatures: [],
-            selectedLayers: []
+            selectedLayers: [],
+            selectPolygonCollection: props.selectPolygonCollection
 		}
         this.getAllFeatures = getAllFeatures.bind(this);
         this.closeThis = this.closeThis.bind(this);
@@ -44,6 +48,23 @@ export default class SearchByPolygonTool extends Component {
 
     componentDidMount(){
         //this.getAllFeatures();
+    }
+
+    forceUpdate() {
+        this.forceUpdate();
+    }
+
+    componentWillReceiveProps(nextProps) {
+        this.setState({selectPolygonCollection: nextProps.selectPolygonCollection});  
+    }
+
+    componentWillUpdate(nextProps, nextStates){    
+        if(!equal(this.state.selectedLayers.length, nextStates.selectedLayers.length))
+            this.setState({showError: false})
+        if(!equal(this.state.pointCollection.length, nextStates.pointCollection.length))
+            this.setState({showError: false})
+        if(!equal(this.props.selectPolygonCollection.length, nextProps.selectPolygonCollection.length))
+            this.setState({showError: false})
     }
 
     onChangeSelect(e){
@@ -73,7 +94,7 @@ export default class SearchByPolygonTool extends Component {
                     
                     <div className="collapsableLabel" id="MouseMethod" ref="MouseMethod" onClick={this.collapsePolygonMethod}>Нарисовать мышью</div>
                     {this.state.collapseMethod === "MouseMethod" && <div className="collapsableBody">
-                    <table><tbody>{this.props.selectPolygonCollection.length ? this.props.selectPolygonCollection.map((graphic, index) => {return <tr key={index} ><td style={{fontSize: 18 + 'px', display: 'inline'}}>{"Объект выборки - " + index}</td><td style={{display: 'table-cell'}}><div className="Form__button" onClick={()=>this.removeGraphic(index)}>Удалить</div></td></tr>}) : <tr className="WorkArea__backtext"><td>Нет полигонов для выборки</td></tr> }</tbody></table>
+                    <div className="WorkArea__PointCollection"><table><thead><tr><td colSpan="2" >Коллекция объектов выборки</td></tr></thead><tbody>{this.state.selectPolygonCollection.length ? this.state.selectPolygonCollection.map((graphic, index) => {return <tr key={index} className="WorkArea__Point" ><td>{"Выборка № " + index}</td><td onClick={() => this.removeGraphic(index)}>-</td></tr>}) : <tr className="WorkArea__Point"><td style={{'fontSize': '14px'}}>Анализируемые участки не выбраны</td></tr>}</tbody></table></div>
                     </div>}
 
                     <div className="WorkArea__ChooseLayers">
@@ -82,18 +103,87 @@ export default class SearchByPolygonTool extends Component {
                             <option value="select">Выбрать</option>
                             {this.props.LayersList.map((layer, index) => { if(layer.id.includes('PrivateCreateLayer') && !layer.id.includes('PrivateSelect')) return <option key={index} value={layer.id + ";" + (layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', ''))}> {layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', '') } </option>})}
                         </select>
-                        <div className="WorkArea__ChooseLayersTable"><table><tbody>{this.state.selectedLayers.length ? this.state.selectedLayers.map((layer, index) => {return <tr key={layer.split(';')[0] + index} ><td style={{fontSize: 18 + 'px', display: 'inline'}}>{layer.split(';')[1]}</td><td style={{display: 'table-cell'}}><div className="Form__button" onClick={()=>this.removeSelectLayer(layer)}>Удалить</div></td></tr>}) : <tr className="WorkArea__backtext"><td></td></tr> }</tbody></table></div>
+                        <div className="WorkArea__PointCollection"><table><thead><tr><td colSpan="2" >Коллекция анализируемых слоев</td></tr></thead><tbody>{this.state.selectedLayers.length ? this.state.selectedLayers.map((layer, index) => {return <tr key={index} className="WorkArea__Point" ><td>{layer.split(';')[1]}</td><td onClick={() => this.removeSelectLayer(layer)}>-</td></tr>}) : <tr className="WorkArea__Point"><td style={{'fontSize': '14px'}}>Анализируемые слои не выбраны</td></tr>}</tbody></table></div>
                     </div>
                     {this.state.showError && <span className="Error__message">*Введены не корректные данные</span>}
                 <div className="Form__Buttons__Block">
                     <div className="Form__button" onClick={this.findFeatures}>Поиск</div>
                 </div>
-                {(this.state.lengthSummClip != 0 || this.state.lengthSummIntersect != 0) && <div className="WorkArea__ResultBottomLeft">
+                {this.state.resultModal && <div className="WorkArea__ResultBottomLeft">
                     <span className="Form__FullScreen" onClick={this.openModalCenter}></span>
                     <h5>Рузультат выполнения инструмента:</h5>
-                    {this.state.resultOpenModal && <div>
-                        <span>Сумма профилей внутри полигона:<br></br> <span className="ResultText__Clip">{this.state.lengthSummClip}</span> метров </span>       
-                        <span>Сумма профилей пересекающихся с полигоном:<br></br> <span className="ResultText__Intersect">{this.state.lengthSummIntersect}</span> метров </span>                     
+                    {this.state.resultOpenModal && <div className="ResultModalBlock">
+                        <table className="ResultModal">
+                                {
+                                    this.state.reportData.map((filterPolygonLayers, indexPolygon) =>                                        
+                                        <tbody key = {'Num' + indexPolygon}>
+                                            <tr>
+                                                <td className="ResultModal__PolygonVariant">
+                                                    Выборка № {indexPolygon}
+                                                </td>
+                                            </tr>
+                                            {filterPolygonLayers.map((filterLyaer, indexLayer) => {
+                                                if(filterLyaer.type === 'polyline')  { 
+                                                return([
+                                                    <tr key= {'polyline1' + indexLayer}>
+                                                        <td className="ResultModal__Clip" colSpan={2}>
+                                                            Сумма линий внутри анализируемого участка:
+                                                        </td>
+                                                    </tr>,
+                                                    <tr key= {'polyline2' + indexLayer}>   
+                                                        <td>
+                                                            <span>Слой:</span><span style={{'color': 'yellow'}}>{filterLyaer.name}</span>
+                                                        </td>                                                 
+                                                        <td>
+                                                            <span className="ResultText__Clip">{filterLyaer.lengthSummClip}</span><span style={{'color': 'white'}}>(км)</span>
+                                                        </td>
+                                                    </tr>,
+                                                    <tr key= {'polyline3' + indexLayer}>
+                                                        <td className="ResultModal__Intersect" colSpan={2}>
+                                                            Сумма линий пересекающихся с анализируемым участком:
+                                                        </td>
+                                                    </tr>,
+                                                    <tr key= {'polyline4' + indexLayer}>
+                                                        <td>
+                                                            <span>Слой:</span><span style={{'color': 'yellow'}}>{filterLyaer.name}</span>
+                                                        </td>
+                                                        <td>
+                                                            <span className="ResultText__Intersect">{filterLyaer.lengthSummIntersect}</span><span style={{'color': 'white'}}>(км)</span>
+                                                        </td>
+                                                    </tr>
+                                                    ])
+                                                }
+                                                else if(filterLyaer.type === 'polygon')                                                  
+                                                    { return [
+                                                    <tr key= {'polygon1' + indexLayer}>
+                                                        <td className="ResultModal__Area" colSpan={2}>
+                                                            Процент изученности участков:
+                                                        </td>
+                                                    </tr>,
+                                                    <tr key= {'polygon2' +indexLayer}>
+                                                        <td>
+                                                            <span>Слой:</span><span style={{'color': 'yellow'}}>{filterLyaer.name}</span>
+                                                        </td>
+                                                    </tr>,
+                                                        filterLyaer.areaResearchProc.map((area, indexArea) => {
+                                                            return[
+                                                                <tr key = {'id' + indexArea}>
+                                                                    <td className="ResultText__AreaId">
+                                                                    <span>ObjectID: </span><span>{area.id}</span>
+                                                                    </td>
+                                                                    <td className="ResultText__AreaDiff">
+                                                                    <span>Изученность: </span><span>{area.areaDiff}%</span>
+                                                                    </td>
+                                                                </tr>
+                                                            ]}                                                                
+                                                        )]
+                                                    }                                                
+                                                })
+                                            }                                      
+                                    </tbody>                                                                                                 
+                                    )
+                                }
+                        </table>                    
                     </div>}
                 </div>}
         	</div>
@@ -147,7 +237,8 @@ export default class SearchByPolygonTool extends Component {
     //-100.78, 32.3;-66.07, 68.45;-80.21, 25.78;-64.78, 32.3
 
     findFeatures(){
-            var vertixes = [];
+            var vertixes = [];            
+            this.setState({reportData: [[]], resultOpenModal: false, resultModal: false})
             if(this.state.collapseMethod == "CoordsMethod" && this.state.pointCollection != [] && this.state.selectValue != "select"){
                 this.state.pointCollection.forEach(point => {
                     var lon = point.longitude;
@@ -170,38 +261,38 @@ export default class SearchByPolygonTool extends Component {
                     this.setState({showError: true})
                 } 
             }
-            else if(this.state.collapseMethod == "MouseMethod" && this.props.selectPolygonCollection.length > 0 && this.state.selectValue != "select"){
-                for(var i = 0; i < this.props.selectPolygonCollection.length; i++){  
-                    if(this.props.selectPolygonCollection[i].geometry){ 
-                        if(this.props.selectPolygonCollection[i].geometry.type === "polygon"){
-                            vertixes = this.props.selectPolygonCollection[i].geometry.rings[0];
+            else if(this.state.collapseMethod == "MouseMethod" && this.state.selectPolygonCollection.length > 0 && this.state.selectedLayers.length > 0){
+                for(var i = 0; i < this.state.selectPolygonCollection.length; i++){  
+                    if(this.state.selectPolygonCollection[i].geometry){ 
+                        if(this.state.selectPolygonCollection[i].geometry.type === "polygon"){
+                            vertixes = this.state.selectPolygonCollection[i].geometry.rings[0];
 
-                            this.convertCoords(vertixes).then((result) => {
+                            this.convertCoords(vertixes, i).then((result) => {
                                 var polygon = {
                                     type: "polygon",
-                                    rings: [result]
+                                    rings: [result.newPoints]
                                 }
-                                this.filterPolygonsByPolygon(polygon);
+                                this.filterPolygonsByPolygon(polygon, result.i);
                             })
                         }         
-                        else if(this.props.selectPolygonCollection[i].geometry.type === "polyline"){
-                            vertixes = this.props.selectPolygonCollection[i].geometry.paths[0];
+                        else if(this.state.selectPolygonCollection[i].geometry.type === "polyline"){
+                            vertixes = this.state.selectPolygonCollection[i].geometry.paths[0];
 
-                            this.convertCoords(vertixes).then((result) => {
+                            this.convertCoords(vertixes, i).then((result) => {
                                 var polyline = {
                                     type: "polyline",
-                                    paths: result
+                                    paths: result.newPoints
                                 }
-                                this.filterPolygonsByPolygon(polyline);
+                                this.filterPolygonsByPolygon(polyline, result.i);
                             })
                         }  
-                        else if(this.props.selectPolygonCollection[i].geometry.type === "point"){
+                        else if(this.state.selectPolygonCollection[i].geometry.type === "point"){
                             var point = {
                                 type: "point",
-                                longitude: this.props.selectPolygonCollection[i].geometry.longitude,
-                                latitude: this.props.selectPolygonCollection[i].geometry.latitude
+                                longitude: this.state.selectPolygonCollection[i].geometry.longitude,
+                                latitude: this.state.selectPolygonCollection[i].geometry.latitude
                             }
-                            this.filterPolygonsByPolygon(point);
+                            this.filterPolygonsByPolygon(point, i);
                         } 
                     }  
                     else{
@@ -214,93 +305,156 @@ export default class SearchByPolygonTool extends Component {
             }         
         }
         
-    filterPolygonsByPolygon(filterLayer){
+    filterPolygonsByPolygon(filterLayer, cicleCount){
         loadModules([
         "esri/layers/FeatureLayer","esri/symbols/SimpleFillSymbol","esri/geometry/geometryEngine", "esri/Graphic"]).then(([FeatureLayer, SimpleFillSymbol, geometryEngine, Graphic]) => {       
         var layers = [];
-        this.state.selectedLayers.forEach(layer => {
+        this.state.selectedLayers.forEach((layer) => {
             layers.push(this.props.map.findLayerById(layer.split(';')[0]))    
-        })            
-        layers.forEach((layer)=>{  
-            if(layer.geometryType === "polyline" && filterLayer.type === "polygon"){  
+        })                  
+        var report = this.state.reportData;
+        report[cicleCount] = [[]];
+        this.setState({reportData: report}, () => {
+            layers.forEach((layer, index)=>{  
+                if(layer.geometryType === "polyline" && filterLayer.type === "polygon"){  
+                    var object = this.state.reportData;
+                    object[cicleCount][index] = new Object({type: '', name: '',lengthSummClip: '', lengthSummIntersect: ''});
+                    this.setState({reportData: object}, () => {
+                        var data = this.state.reportData;
+                        data[cicleCount][index].name = layer.source ? layer.source.layerDefinition.name : layer.id;
+                        data[cicleCount][index].type = "polyline";
+                        this.setState({reportData: data})
+
+                        var fields = layer.fields;
+                        var resultFeatures = []
+                        var lengthSummClip = 0;
+                        var query = layer.createQuery();
+                        query.outFields = [ "*" ];
+                        query.geometry = filterLayer;
+                        query.returnGeometry = true;
+                        layer.queryFeatures(query)
+                        .then((response) => {
+                            this.setState({allfeatures: response.features});
+                            response.features.forEach((feat)=>
+                                {
+                                    if(geometryEngine.intersects(feat.geometry, filterLayer))
+                                    {
+                                        var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
+                                        intersectedGeom.attributes = feat.attributes;
+                                        lengthSummClip = lengthSummClip + geometryEngine.geodesicLength(intersectedGeom, "kilometers");
+                                        resultFeatures.push(intersectedGeom);
+                                    }
+                                })
+                                    var lengthSummClipData = this.state.reportData;
+                                    lengthSummClipData[cicleCount][index].lengthSummClip = lengthSummClip
+                                    this.setState({reportData: lengthSummClipData})
+                                    var graphics = [];
+                                    resultFeatures.forEach(geom => {
+                                    var graphic = new Graphic({
+                                        attributes: geom.attributes,
+                                        geometry: geom
+                                    });   
+                                        graphics.push(graphic); 
+                                    }) 
+                                    this.createGraphic(graphics, fields.filter(field => field.type != 'geometry'), layer.geometryType, 
+                                    (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_ОТРЕЗОК_' + this.props.map.layers.items.filter(item => item.id.includes('ОТРЕЗОК')).length : 'ОТРЕЗОК_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('ОТРЕЗОК')).length), 'lawngreen');
+                                    // if(response.features.length == layer.maxRecordCount){
+                                    //    this.featureGet(response.features[response.features.length - 1].attributes["FID"]).then(all => {
+                                    //         all.forEach((feat)=>{
+                                    //            if(geometryEngine.intersects(feat.geometry, filterLayer)){
+                                    //                var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
+                                    //                resultFeatures.push(intersectedGeom);
+                                    //                console.log("boom")
+                                    //            }
+                                    //        })
+                                    //        console.log("end")
+                                    //        this.createGraphic(resultFeatures, fields);
+                                    //    })
+                                    // }
+                                })
+                    })
+                }
+                else if(layer.geometryType === "polygon" && filterLayer.type === "polygon"){  
+                    var object = this.state.reportData;
+                    object[cicleCount][index] = new Object({type: '', name: '', areaResearchProc: []});
+                    this.setState({reportData: object}, () => {
+                        var data = this.state.reportData;
+                        data[cicleCount][index].name = layer.source ? layer.source.layerDefinition.name : layer.id;
+                        data[cicleCount][index].type = "polygon"; 
+                        this.setState({reportData: data})
+                        
+                        var fields = layer.fields;
+                        var resultFeatures = [];
+                        var query = layer.createQuery();
+                        var areaResearchProc = [];
+                        var filterGeom = new Graphic({
+                            geometry: filterLayer
+                        });   
+                        query.outFields = [ "*" ];
+                        query.geometry = filterLayer;
+                        query.returnGeometry = true;
+                        layer.queryFeatures(query)
+                        .then((response) => {
+                            response.features.forEach((feat)=>
+                                {
+                                    if(geometryEngine.intersects(feat.geometry, filterLayer))
+                                    {
+                                        var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
+                                        intersectedGeom.attributes = feat.attributes;
+                                        let area = geometryEngine.geodesicArea(intersectedGeom, 'square-kilometers');
+                                        let startArea = geometryEngine.geodesicArea(feat.geometry, 'square-kilometers');
+                                        let result = Math.round(area / startArea * 100);
+                                        var oid = feat.layer.fields.filter(field => field.type == 'oid')[0].alias
+                                        areaResearchProc.push({id: feat.attributes[oid], areaDiff: result})
+                                        resultFeatures.push(intersectedGeom);
+                                    }
+                                })
+                                var areaResearchProcData = this.state.reportData;
+                                areaResearchProcData[cicleCount][index].areaResearchProc = areaResearchProc
+                                this.setState({reportData: areaResearchProcData})
+                            })
+                    })
+                }
+                
                 var fields = layer.fields;
-                var resultFeatures = [];
-                var query = layer.createQuery();
-                query.outFields = [ "*" ];
-                query.geometry = filterLayer;
-                query.returnGeometry = true;
-                layer.queryFeatures(query)
-                .then((response) => {
-                    this.setState({allfeatures: response.features});
-                    this.setState({lengthSummClip: 0, lengthSummIntersect: 0, resultOpenModal: true})
-                    response.features.forEach((feat)=>
-                        {
-                            if(geometryEngine.intersects(feat.geometry, filterLayer))
+                var queryCros = layer.createQuery();
+                var lengthSummIntersect = 0;
+                queryCros.outFields = [ "*" ];
+                queryCros.geometry = filterLayer;
+                queryCros.returnGeometry = true;
+                layer.queryFeatures(queryCros).then((result) => {
+                    if(layer.geometryType === 'polyline'){
+                        result.features.forEach((feat)=>
                             {
-                                var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
-                                intersectedGeom.attributes = feat.attributes;
-                                this.state.lengthSummClip = this.state.lengthSummClip + geometryEngine.geodesicLength(intersectedGeom, "meters");
-                                resultFeatures.push(intersectedGeom);
-                            }
-                        })
-                            var graphics = [];
-                            resultFeatures.forEach(geom => {
-                            var graphic = new Graphic({
-                                attributes: geom.attributes,
-                                geometry: geom
-                            });   
-                                graphics.push(graphic); 
-                            }) 
-                            this.createGraphic(graphics, fields.filter(field => field.type != 'geometry'), layer.geometryType, 
-                            (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_CLIP_' + this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length : 'CLIP_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('CLIP')).length), 'lawngreen');
-                            // if(response.features.length == layer.maxRecordCount){
-                            //    this.featureGet(response.features[response.features.length - 1].attributes["FID"]).then(all => {
-                            //         all.forEach((feat)=>{
-                            //            if(geometryEngine.intersects(feat.geometry, filterLayer)){
-                            //                var intersectedGeom = geometryEngine.intersect(feat.geometry, filterLayer);
-                            //                resultFeatures.push(intersectedGeom);
-                            //                console.log("boom")
-                            //            }
-                            //        })
-                            //        console.log("end")
-                            //        this.createGraphic(resultFeatures, fields);
-                            //    })
-                            // }
-                        })
-            }
-            var fields = layer.fields;
-            var queryCros = layer.createQuery();
-            queryCros.outFields = [ "*" ];
-            queryCros.geometry = filterLayer;
-            queryCros.returnGeometry = true;
-            layer.queryFeatures(queryCros).then((result) => {
-                if(layer.geometryType === 'polyline'){
-                    result.features.forEach((feat)=>
-                        {
-                                this.state.lengthSummIntersect = this.state.lengthSummIntersect + geometryEngine.geodesicLength(feat.geometry, "meters");
-                        })
-                    }
-                this.createGraphic(result.features, fields.filter(field => field.type != 'geometry'), layer.geometryType, 
-                (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_INTERSECT_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length : 'INTERSECT_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('INTERSECT')).length))
+                                    lengthSummIntersect = lengthSummIntersect + geometryEngine.geodesicLength(feat.geometry, 'kilometers');
+                            })
+                            var lengthSummIntersectData = this.state.reportData;
+                            lengthSummIntersectData[cicleCount][index].lengthSummIntersect = lengthSummIntersect;
+                            this.setState({reportData: lengthSummIntersectData})                        
+                        }
+                    this.createGraphic(result.features, fields.filter(field => field.type != 'geometry'), layer.geometryType, 
+                    (layer.source.layerDefinition.name ? layer.source.layerDefinition.name + '_ПЕРЕСЕЧЕНИЕ_' +  this.props.map.layers.items.filter(item => item.id.includes('ПЕРЕСЕЧЕНИЕ')).length : 'ПЕРЕСЕЧЕНИЕ_Layer_' +  this.props.map.layers.items.filter(item => item.id.includes('ПЕРЕСЕЧЕНИЕ')).length))
+                })
+            })         
         })
-    })          
-    })}; 
+    }).then(() => {this.setState({resultOpenModal: true, resultModal: true})})
+    }; 
 
     createGraphic(graphics, fields, geometryType, Name){
         this.createFeatureLayer(graphics, fields, geometryType, Name).then((result) => {
             this.props.map.add(result);
             this.props.updateLayersArray();
-        })        
+        })       
     }
 
-    convertCoords(points){
+    convertCoords(points, i){
         var result = loadModules(["esri/geometry/support/webMercatorUtils"]).then(([webMercatorUtils]) => { 
             var newPoints = [];
             //points.forEach(point => {var newpoint = webMercatorUtils.lngLatToXY(point[0], point[1]); newPoints.push(newpoint)});      
             points.forEach(point => {var newpoint = webMercatorUtils.xyToLngLat(point[0], point[1]); newPoints.push(newpoint)});        
-            return newPoints;
+            return {newPoints: newPoints, i: i};
         });
-        return result
+        return result;
     }
 
     featureGet(fid){
@@ -323,8 +477,8 @@ export default class SearchByPolygonTool extends Component {
         this.setState({resultOpenModal: state});
         if(state){
             var elem = document.getElementsByClassName('WorkArea__ResultBottomLeft')[0];
-            elem.style.left = 'calc(50% - 200px)';
-            elem.style.top = '25%';
+            elem.style.left = '30%';
+            elem.style.top = '100px';
             elem.style.height = 'auto';
         }
         else{

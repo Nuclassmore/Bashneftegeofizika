@@ -14,7 +14,7 @@ export default class MenuToolSet extends Component {
         return (
         	<div className="Form"> 
             <div className="Menu__itemtitle"><span className="Form__titlespan">Инструменты</span></div>           
-            <div id="firstTool" className="Menu__item" onClick={() => this.openToolWorkForm("firstTool")}><h4>Поиск по полигону</h4></div>     
+            <div id="firstTool" className="Menu__item" onClick={() => this.openToolWorkForm("firstTool")}><h4>Анализ изученности участка</h4></div>     
         	</div>
             )	
     }

@@ -170,13 +170,13 @@ export default class FeatureTableComponent extends Component {
 
     selectOnLayer(){
         if(this.state.tab == "base"){
-            this.createFeatureLayer(this.state.filteredFeatures, this.props.tableItemsFieldName.filter(field => field.alias != 'Shape'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
+            this.createFeatureLayer(this.state.filteredFeatures, this.props.tableItemsFieldName.filter(field => field.type != 'geometry'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
                 this.props.map.add(result);
                 this.setState({selectedLayer: true})
             })
         }
         else if(this.state.tab == "select"){
-            this.createFeatureLayer(this.state.filteredSelectedObjects, this.props.tableItemsFieldName.filter(field => field.alias != 'Shape'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
+            this.createFeatureLayer(this.state.filteredSelectedObjects, this.props.tableItemsFieldName.filter(field => field.type != 'geometry'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
                 this.props.map.add(result);
                 this.setState({selectedLayer: true})
             })

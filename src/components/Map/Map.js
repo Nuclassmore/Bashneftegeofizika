@@ -30,8 +30,10 @@ export default class MapContainer extends Component {
             x: 0,
             y: 0,
             startDrawing: false,
+            showAdviceTooltip: false,
             drawPolygonPointsCollection: [],
             selectPolygonCollection: [],
+            selectPolygonCollectionCount: 0,
             layers: [],
             graphicLayer: {},
             layerName: "",
@@ -43,10 +45,10 @@ export default class MapContainer extends Component {
             layerPath: ""
         }
         
+        this.searchPolygonChild = React.createRef();
         this.handleMapLoad = this.handleMapLoad.bind(this);
         this.showTable = this.showTable.bind(this);
         this.closeForm = this.closeForm.bind(this);
-        this.startDrawPolygon = this.startDrawPolygon.bind(this);
         this.handleChangePath = this.handleChangePath.bind(this);
         this.addService = this.addService.bind(this);
         this.toggleLayer = this.toggleLayer.bind(this);
@@ -101,11 +103,12 @@ export default class MapContainer extends Component {
         this.setState({selectServiceValue: e.target.value}, () => this.getServicesLayer());        
     }
 
-    _onMouseMove(e) {
-        this.setState({ y: e.screenX - 10, x: e.screenY - 10});
-      }
+    componentWillUpdate(nextPrevs, nextStates){
+        if(this.state.map && this.state.map.findLayerById("GraphicLayer") && this.state.selectPolygonCollectionCount != this.state.map.findLayerById("GraphicLayer").graphics.items.length)
+            this.setState({selectPolygonCollection: this.state.map.findLayerById("GraphicLayer").graphics.items, selectPolygonCollectionCount: this.state.map.findLayerById("GraphicLayer").graphics.items.length})
+    }
 
-    componentDidUpdate(){
+    componentDidUpdate(prevProps, prevStates){       
         if(this.props.workToolId != null && this.state.view){
             this.state.view.popup.autoOpenEnabled = false;
             this.state.view.popup.close()
@@ -117,16 +120,16 @@ export default class MapContainer extends Component {
 
     render() {
         return (
-            <div className="Map" onMouseMove={this._onMouseMove.bind(this)}>                      
+            <div className="Map">                      
             	{this.state.status === "loading" && (<div className="load__page"><div className="logo__load"></div></div>)}
             	
                 <Map mapProperties={{ basemap: 'topo' }}
     			    	viewProperties={this.state.viewProperties} 
-    			        onLoad={this.handleMapLoad} onClick={this.startDrawPolygon} onDoubleClick = {(evt)=>this.endPolygonDraw(evt)} >   
+    			        onLoad={this.handleMapLoad} onDoubleClick={(evt) => this.endPolygonDraw(evt)}>   
                 </Map>               
                 
-                {this.props.workToolId === "firstTool" && <SearchByPolygonTool closeForm={(id) => this.closeForm(id)} map = {this.state.map} removeGraphics = {(index, method) => this.removeGraphics(index, method)} 
-                selectPolygonCollection = {this.state.map.findLayerById("GraphicLayer") ? this.state.map.findLayerById("GraphicLayer").graphics.items : []} 
+                {this.props.workToolId === "firstTool" && <SearchByPolygonTool ref={this.searchPolygonChild} closeForm={(id) => this.closeForm(id)} map = {this.state.map} removeGraphics = {(index, method) => this.removeGraphics(index, method)} 
+                selectPolygonCollection = {this.state.selectPolygonCollection} 
                 startDrawPolygon={(flag)=>this.startDrawPolygonTolltip(flag)} LayersList = {this.state.layers} updateLayersArray = {this.updateLayersArray}></SearchByPolygonTool>}
                 
                 {this.props.workToolId === "attributeTable" && <FeatureTableComponent tableGeometryType = {this.state.tableGeometryType} layerName = {this.state.layerName} map = {this.state.map} tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)} removeLayer = {(id) => this.removeLayer(id)}></FeatureTableComponent>} 
@@ -172,6 +175,8 @@ export default class MapContainer extends Component {
 
                 <div className="Form__Buttons__Block"><div className="Form__button" onClick={() => this.addServiceLayer()}>Добавить сервис</div></div>
                 </div>}
+
+                {this.state.showAdviceTooltip && <div className="Advice__Tooltip">Для добавления полигона в коллекцию, нажмите на карту</div>}
             </div>            
         )	    
     }      
@@ -197,11 +202,12 @@ export default class MapContainer extends Component {
                     position: "top-right"
                     });
             })
+            this.setState({showAdviceTooltip: true})
         }
         else{
             this.state.map.remove(this.state.map.findLayerById("GraphicLayer"));
             this.state.view.ui.empty("top-right");
-            this.setState({selectPolygonCollection: []});
+            this.setState({selectPolygonCollection: [], showAdviceTooltip: false});
         }
     }
 
@@ -240,6 +246,7 @@ export default class MapContainer extends Component {
     removeGraphics(index, method){
         if(this.state.map.findLayerById("GraphicLayer") && this.state.map.findLayerById("GraphicLayer").graphics){
             this.state.map.findLayerById("GraphicLayer").graphics.remove(this.state.map.findLayerById("GraphicLayer").graphics.items[index]);
+            this.setState({selectPolygonCollection: this.state.map.findLayerById("GraphicLayer").graphics.items})
         }
     }
 
@@ -397,11 +404,6 @@ export default class MapContainer extends Component {
 
     endPolygonDraw(evt){
         evt.stopPropagation();
-        //this.setState({selectPolygonCollection: this.state.map.findLayerById("GraphicLayer").graphics.items})
-        // if(this.state.startDrawing && this.state.drawPolygonPointsCollection.length > 3){
-        //     this.setState({selectPolygonCollection: this.state.view.graphics.items});            
-        //     this.setState({startDrawing: false});
-        // }
     }
 
     startDrawPolygon(event){ 

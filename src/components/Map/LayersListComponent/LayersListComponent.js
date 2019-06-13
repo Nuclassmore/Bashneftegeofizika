@@ -32,7 +32,7 @@ export default class LayersListComponent extends Component {
                             <span>{layer.source && layer.source.layerDefinition && layer.source.layerDefinition.name ? layer.source.layerDefinition.name : layer.id.replace('PrivateCreateLayer', '') }</span>
                             </div>
                             <div title="Свойства" className="LayersList__SettingsIcon" onClick={($event) => this.openModalTooltip($event, layer.id)}>
-                                {this.state.modalSettingsId === layer.id && <div title="" style={{marginTop: -50 - this.state.layerListBlockScroll}}>
+                                {this.state.modalSettingsId === layer.id && <div title="" style={{marginTop: -80 - this.state.layerListBlockScroll}}>
                                     <div onClick={() => this.props.zoomToLayer(layer.id)}>
                                         Приблизить
                                     </div>
