@@ -101,12 +101,15 @@ export default class FeatureTableComponent extends Component {
                 this.state.selectedObjects.push(item)
                 this.setState({filteredSelectedObjects: this.state.selectedObjects})
             }
-            else if(this.state.selectedObjectsIds.includes(id))
+            else if(event.ctrlKey && this.state.selectedObjectsIds.includes(id))
             {
-                var idIndex = this.state.selectedObjectsIds.indexOf(id)
-                delete this.state.selectedObjectsIds[idIndex]
-                var objectIndex = this.state.selectedObjects.indexOf(item)
-                delete this.state.selectedObjects[objectIndex]
+                var selectedObjIds = this.state.selectedObjectsIds;
+                var idIndex = selectedObjIds.indexOf(id)
+                delete selectedObjIds[idIndex]
+                var selectedObj = this.state.selectedObjects
+                var objectIndex = selectedObj.indexOf(item)
+                delete selectedObj[objectIndex]
+                this.setState({selectedObjectsIds: selectedObjIds, selectedObjects: selectedObj})
             }
         }
         else{

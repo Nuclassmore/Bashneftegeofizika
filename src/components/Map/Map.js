@@ -64,6 +64,7 @@ export default class MapContainer extends Component {
         this.getServicesLayerv = this.getServicesLayer.bind(this);
         this.onChangeServiceLayerSelect = this.onChangeServiceLayerSelect.bind(this);
         this.checkService = this.checkService.bind(this);
+        this.uuidv4 = this.uuidv4.bind(this);
     }  
 
     
@@ -135,7 +136,6 @@ export default class MapContainer extends Component {
                 {this.props.workToolId === "attributeTable" && <FeatureTableComponent tableGeometryType = {this.state.tableGeometryType} layerName = {this.state.layerName} map = {this.state.map} tableShowData = {this.state.tableItemsData} tableItemsFieldName = {this.state.tableItemsFieldName} closeForm={(id) => this.closeForm(id)} removeLayer = {(id) => this.removeLayer(id)}></FeatureTableComponent>} 
                 
                 {this.props.showLayersListForm && <LayersListComponent openTable = {(id) => this.showTable(id)} removeLayer={(id) => this.removeLayer(id)} LayersList = {this.state.layers} toggleLayer={(layerId, flag, index) => this.toggleLayer(layerId, flag, index)} zoomToLayer = {(id) => this.zoomToLayer(id)} ></LayersListComponent>}
-
 
                 {/* Добавление сервиса при входе */}
                 {!this.props.showLayer && this.state.status === "loaded" && <div className="AddLayer__Form"> 
@@ -316,7 +316,7 @@ export default class MapContainer extends Component {
                 };
                 const myFeatureLayer = new FeatureLayer({
                     mode: FeatureLayer.MODE_ONDEMAND,
-                    id: id ? id : 'PrivateCreateLayer' + "ServiceLayer-" + this.state.map.layers.items.length,
+                    id: id ? id : 'PrivateCreateLayer' + "ServiceLayer-" + this.uuidv4(),
                     url: url ? url : this.state.servicePath,
                     outFields: ["*"],
                     popupTemplate: template
@@ -340,7 +340,7 @@ export default class MapContainer extends Component {
                   };
                 const myFeatureLayer = new FeatureLayer({
                     mode: FeatureLayer.MODE_ONDEMAND,
-                    id: 'PrivateCreateLayer' + "ServiceLayer-" + this.state.map.layers.items.length,
+                    id: 'PrivateCreateLayer' + "ServiceLayer-" + this.uuidv4(),
                     url: this.state.selectServiceLayerValue != "select" ? this.state.selectServiceLayerValue : this.state.servicePath,
                     outFields: ["*"],
                     popupTemplate: template
@@ -379,6 +379,13 @@ export default class MapContainer extends Component {
             }
         })
     }
+
+    uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
 
     showTable(LayerId){  
         this.closeForm("FeatureTable");

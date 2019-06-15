@@ -34,14 +34,14 @@
 }
 .AddLayer__Form{
 	width: 400px;
-	min-height: 250px;
+	min-height: max-content;
 	background-color: rgba(0,0,0,0.8);
 	border-radius: 10px;
 	position: absolute;
 	box-shadow: 0 0 30px rgba(0,0,0,0.5);
 	z-index: 99;
 	top: calc(50vh - 200px);
-	left: calc(50% - 200px);
+	left: calc(50vw - 200px);
 	text-align: center;
 }
 .AddLayer__Form h5 {
