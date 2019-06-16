@@ -156,3 +156,16 @@
 	border-bottom-left-radius: 10px;
 	border-bottom-right-radius: 10px;
 }
+
+.FeatureTable__BlockExpander::after{
+	position: absolute;
+    content: '\f106';
+    font-family: "Font Awesome\ 5 Free";
+    font-weight: 900;
+    width: 10px;
+    height: 10px;
+    border: none;
+    margin-left: 0.3em;
+	vertical-align: top;
+	cursor: pointer;
+}

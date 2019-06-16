@@ -161,7 +161,7 @@ export default class SearchByPolygonTool extends Component {
                 </div>
                 {this.state.resultModal && <div className="WorkArea__ResultBottomLeft">
                     <span className="Form__FullScreen" onClick={this.openModalCenter}></span>
-                    <h5>Рузультат выполнения инструмента:</h5>
+                    <h5>Результат выполнения инструмента:</h5>
                     {this.state.resultOpenModal && <div className="ResultModalBlock">
                         <table className="ResultModal">
                                 {
@@ -172,12 +172,12 @@ export default class SearchByPolygonTool extends Component {
                                                     {typeof filterPolygonLayers.name == 'number' ? 'Выборка № ' + filterPolygonLayers.name : filterPolygonLayers.name}
                                                 </td>
                                             </tr>
-                                            {filterPolygonLayers.data.map((filterLyaer, indexLayer) => {
+                                            {filterPolygonLayers.data.length > 0 && filterPolygonLayers.data.map((filterLyaer, indexLayer) => {
                                                 if(filterLyaer.type === 'polyline')  { 
                                                 return([
                                                     <tr key= {'polyline1' + indexLayer}>
                                                         <td className="ResultModal__Clip" colSpan={2}>
-                                                            Длинна линий внутри анализируемого участка:
+                                                            Длина линий внутри анализируемого участка:
                                                         </td>
                                                     </tr>,
                                                     <tr key= {'polyline2' + indexLayer}>   
@@ -190,7 +190,7 @@ export default class SearchByPolygonTool extends Component {
                                                     </tr>,
                                                     <tr key= {'polyline3' + indexLayer}>
                                                         <td className="ResultModal__Intersect" colSpan={2}>
-                                                            Длинна линий пересекающихся с анализируемым участком:
+                                                            Длина линий пересекающихся с анализируемым участком:
                                                         </td>
                                                     </tr>,
                                                     <tr key= {'polyline4' + indexLayer}>
@@ -297,10 +297,10 @@ export default class SearchByPolygonTool extends Component {
     findFeatures(){
             var vertixes = [];            
             this.setState({reportData: [{name: '', data: []}], resultOpenModal: false, resultModal: false})
-            if(this.state.collapseMethod == "CoordsMethod" && this.state.pointCollection != [] && this.state.selectValue != "select"){
+            if(this.state.collapseMethod == "CoordsMethod" && this.state.pointCollection != [] && this.state.selectedLayers.length > 0){
                 this.state.pointCollection.forEach(point => {
-                    var lon = point.longitude;
-                    var lat = point.latitude;
+                    var lon = parseFloat(point.longitude);
+                    var lat = parseFloat(point.latitude);
                     var p = [];
                     p.push(lat);
                     p.push(lon);
@@ -309,11 +309,12 @@ export default class SearchByPolygonTool extends Component {
                 if(vertixes[0] != vertixes[vertixes.length - 1])
                     vertixes.push(vertixes[0]);
                 if(vertixes !== "" && vertixes.length >= 4){
+                    this.props.drawGraphic(vertixes);
                     var polygon = {
                         type: "polygon",
                         rings: vertixes
                     }
-                    this.filterPolygonsByPolygon(polygon);
+                    this.filterPolygonsByPolygon(polygon, 0, 'Анализ изученности участка');
                 }
                 else{
                     this.setState({showError: true})

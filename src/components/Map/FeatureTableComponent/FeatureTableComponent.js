@@ -16,7 +16,8 @@ export default class FeatureTableComponent extends Component {
             selectedObjectsIds: [],
             filteredSelectedObjects: [],
             idField: "",
-            selectedLayer: false
+            selectedLayer: false,
+            tableExpand: false
 		}
         this.closeThis = this.closeThis.bind(this);
         this.moveArrayForward= this.moveArrayForward.bind(this);
@@ -39,6 +40,7 @@ export default class FeatureTableComponent extends Component {
         this.selectOnLayer = this.selectOnLayer.bind(this);
         this.createFeatureLayer = createFeatureLayer.bind(this);
         this.unselectObjects = this.unselectObjects.bind(this);
+        this.tableBlockExpand = this.tableBlockExpand.bind(this);
     }
 
     
@@ -122,6 +124,7 @@ export default class FeatureTableComponent extends Component {
         const listType = this.state.tab == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
         return (
         	<div className="FeatureTable__Block"> 
+                <div className="FeatureTable__BlockExpander" onClick={this.tableBlockExpand}></div>
                 <span className="Form__Close" onClick={this.closeThis}></span>
                 <div className="FeatureTable__SearchBlock">
                     <input className="FeatureTable__SearchInput" value={this.state.serchValue} placeholder="Поиск" onChange={this.handleChangeSearch}/>
@@ -149,6 +152,24 @@ export default class FeatureTableComponent extends Component {
                 </div>
             </div>
             )	
+    }
+
+    tableBlockExpand(){
+        var flag = !this.state.tableExpand
+        if(flag){
+            var elem = document.getElementsByClassName('FeatureTable__TableBlock')[0]
+            elem.style.height = 'calc(100vh - 150px)';
+            var styleElem = document.head.appendChild(document.createElement("style"));
+            styleElem.innerHTML = ".FeatureTable__BlockExpander:after {content: '\\f107'}";
+            this.setState({tableExpand: flag})
+        }
+        else{
+            var elem = document.getElementsByClassName('FeatureTable__TableBlock')[0]
+            elem.style.height = 'calc(100% - 6px - 20px)';
+            var styleElem = document.head.appendChild(document.createElement("style"));
+            styleElem.innerHTML = ".FeatureTable__BlockExpander:after {content: '\\f106'}";
+            this.setState({tableExpand: flag})
+        }
     }
 
     moveArrayForward(){

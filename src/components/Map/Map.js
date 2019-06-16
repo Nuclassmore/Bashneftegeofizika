@@ -42,7 +42,8 @@ export default class MapContainer extends Component {
             services: [],
             serviceLayers: [],
             selectServiceLayerValue: "select",
-            layerPath: ""
+            layerPath: "",
+            coordsWidget: null
         }
         
         this.searchPolygonChild = React.createRef();
@@ -65,6 +66,7 @@ export default class MapContainer extends Component {
         this.onChangeServiceLayerSelect = this.onChangeServiceLayerSelect.bind(this);
         this.checkService = this.checkService.bind(this);
         this.uuidv4 = this.uuidv4.bind(this);
+        this.drawGraphic = this.drawGraphic.bind(this);
     }  
 
     
@@ -93,6 +95,14 @@ export default class MapContainer extends Component {
                         })
                     }
             }
+            var coordsWidget = document.createElement("div");
+            coordsWidget.id = "coordsWidget";
+            coordsWidget.className = "esri-widget esri-component";
+            coordsWidget.style.padding = "7px 15px 5px";
+            this.setState({coordsWidget: coordsWidget}, () => {
+                this.state.view.ui.add(this.state.coordsWidget, "bottom-right");
+            })
+      
         });    
     }
     
@@ -126,10 +136,10 @@ export default class MapContainer extends Component {
             	
                 <Map mapProperties={{ basemap: 'topo' }}
     			    	viewProperties={this.state.viewProperties} 
-    			        onLoad={this.handleMapLoad} onDoubleClick={(evt) => this.endPolygonDraw(evt)}>   
+    			        onLoad={this.handleMapLoad} onDoubleClick={(evt) => this.endPolygonDraw(evt)} onClick={this.startDrawPolygon}>   
                 </Map>               
                 
-                {this.props.workToolId === "firstTool" && <SearchByPolygonTool ref={this.searchPolygonChild} closeForm={(id) => this.closeForm(id)} map = {this.state.map} removeGraphics = {(index, method) => this.removeGraphics(index, method)} 
+                {this.props.workToolId === "firstTool" && <SearchByPolygonTool ref={this.searchPolygonChild} drawGraphic = {(rings) => this.drawGraphic(rings)} closeForm={(id) => this.closeForm(id)} map = {this.state.map} removeGraphics = {(index, method) => this.removeGraphics(index, method)} 
                 selectPolygonCollection = {this.state.selectPolygonCollection} 
                 startDrawPolygon={(flag)=>this.startDrawPolygonTolltip(flag)} LayersList = {this.state.layers} updateLayersArray = {this.updateLayersArray}></SearchByPolygonTool>}
                 
@@ -159,7 +169,7 @@ export default class MapContainer extends Component {
                 {/* Добавление сервиса */}
                 {this.props.showLayerAddForm && <div className="AddLayer__Form"> 
                 <span className="Form__Close" onClick={() => this.props.toggleForm("AddServiceForm")}></span>
-                <h5>Введите адрес сервиса пространственных объектов</h5>
+                <h5>Введите адрес сервиса</h5>
 
                 <input className="Form__input" value={this.state.servicePath} onChange={this.handleChangePath} placeholder="Введите адрес"/>
 
@@ -184,14 +194,15 @@ export default class MapContainer extends Component {
     //линии https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/Florida_Annual_Average_Daily_Traffic/FeatureServer/0
     //полигоны https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer/3
     //точки https://services.arcgis.com/rOo16HdIMeOBI4Mb/arcgis/rest/services/Heritage_Trees_Portland/FeatureServer/0
-    // https://services6.arcgis.com/uynOyrEMiVAb2Kao/ArcGIS/rest/services/%D0%9B%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D0%BE%D0%BD%D0%BD%D1%8B%D0%B9_%D1%83%D1%87%D0%B0%D1%81%D1%82%D0%BE%D0%BA/FeatureServer/0
-    // https://services6.arcgis.com/uynOyrEMiVAb2Kao/ArcGIS/rest/services/%D0%A1%D0%BA%D0%B2%D0%B0%D0%B6%D0%B8%D0%BD%D1%8B/FeatureServer/0
-    // https://services6.arcgis.com/uynOyrEMiVAb2Kao/ArcGIS/rest/services/%D0%9F%D1%80%D0%BE%D1%84%D0%B8%D0%BB%D0%B8/FeatureServer/0
+    // https://services7.arcgis.com/UiNMyfHmFYoLiyoT/arcgis/rest/services
+
     startDrawPolygonTolltip(flag){
         if(flag === "on"){
             loadModules(["esri/widgets/Sketch","esri/layers/GraphicsLayer"]).then(([Sketch, GraphicsLayer]) => {
-                var graph = new GraphicsLayer({id: "GraphicLayer"});
-                this.state.map.add(graph);
+                if(!this.state.map.findLayerById('GraphicLayer')){
+                    var graph = new GraphicsLayer({id: "GraphicLayer"});
+                    this.state.map.add(graph);
+                }
                 const sketch = new Sketch({
                 layer: graph,
                 view: this.state.view
@@ -248,6 +259,35 @@ export default class MapContainer extends Component {
             this.state.map.findLayerById("GraphicLayer").graphics.remove(this.state.map.findLayerById("GraphicLayer").graphics.items[index]);
             this.setState({selectPolygonCollection: this.state.map.findLayerById("GraphicLayer").graphics.items})
         }
+    }
+
+    drawGraphic(rings){      
+        loadModules(["esri/Graphic", "esri/layers/GraphicsLayer"]).then(([Graphic, GraphicsLayer]) => {
+        var polygon = {
+            type: "polygon",
+            rings: rings
+            };
+        const symbol = {
+            type: "simple-fill",
+            color: [0, 0, 0, 0.4],
+            outline: {
+            color: [0, 0, 0],
+            width: 1
+            }
+        };
+        var graphic = new Graphic({
+            geometry: polygon,
+            symbol: symbol
+        });   
+        if(this.state.map.findLayerById('GraphicLayer')){
+            this.state.map.findLayerById('GraphicLayer').graphics.add(graphic);            
+        }
+        else{
+            var graph = new GraphicsLayer({id: "GraphicLayer"});
+            this.state.map.add(graph);
+            this.state.map.findLayerById('GraphicLayer').graphics.add(graphic);  
+        }
+    })
     }
 
     getServicesLayer(){        
@@ -414,6 +454,12 @@ export default class MapContainer extends Component {
     }
 
     startDrawPolygon(event){ 
+        var widget = this.state.coordsWidget
+        var coords = "Lat/Lon " + event.mapPoint.latitude.toFixed(6) + " " + event.mapPoint.longitude.toFixed(6) +
+        " | Scale 1:" + Math.round(this.state.view.scale * 1) / 1 +
+        " | Zoom " + this.state.view.zoom;
+        widget.innerHTML = coords;
+        this.setState({coordsWidget: widget})
         if(!this.state.startDrawing){
             
         }
