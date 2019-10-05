@@ -10,8 +10,10 @@ export default class LayersListComponent extends Component {
             layerListBlockScroll: 0
         }        
         this.openModalTooltip = this.openModalTooltip.bind(this);
-        this.removeLayer = this.removeLayer.bind(this);
         this.onInnerBlockScroolEvent = this.onInnerBlockScroolEvent.bind(this);
+        this.zoomToLayer = this.zoomToLayer.bind(this);
+        this.removeLayer = this.removeLayer.bind(this);
+        this.openTable = this.openTable.bind(this);
     }
 
     onInnerBlockScroolEvent(){
@@ -33,13 +35,13 @@ export default class LayersListComponent extends Component {
                             </div>
                             <div title="Свойства" className="LayersList__SettingsIcon" onClick={($event) => this.openModalTooltip($event, layer.id)}>
                                 {this.state.modalSettingsId === layer.id && <div title="" style={{marginTop: -80 - this.state.layerListBlockScroll}}>
-                                    <div onClick={() => this.props.zoomToLayer(layer.id)}>
+                                    <div onClick={($event) => {this.zoomToLayer($event, layer.id)}}>
                                         Приблизить
                                     </div>
-                                    <div onClick={() => this.props.openTable(layer.id)}>
+                                    <div onClick={($event) => {this.openTable($event, layer.id)}}>
                                         Таблица
                                     </div>
-                                    <div onClick={() => this.props.removeLayer(layer.id)}>
+                                    <div onClick={($event) => {this.removeLayer($event, layer.id)}}>
                                         Удалить
                                     </div>
                                 </div>}
@@ -50,10 +52,29 @@ export default class LayersListComponent extends Component {
         	</div>
             )	
     }    
+
+
+    zoomToLayer(e, id){
+        this.setState({modalSettingsId: ""})
+        e.stopPropagation(); 
+        this.props.zoomToLayer(id);
+    }
+
+    openTable(e, id){
+        this.setState({modalSettingsId: ""})
+        e.stopPropagation(); 
+        this.props.openTable(id);
+    }
+
+    removeLayer(e, id){
+        this.setState({modalSettingsId: ""})
+        e.stopPropagation(); 
+        this.props.removeLayer(id);
+    }
    
     openModalTooltip(e, id){
         e.persist()
-        if(this.state.modalSettingsId == id)
+        if(this.state.modalSettingsId === id)
             this.setState({modalSettingsId: ""})
         else
         {
@@ -62,10 +83,6 @@ export default class LayersListComponent extends Component {
                 this.setState({layerListBlockScroll: element.scrollTop})
             })
         }        
-    }
-
-    removeLayer(id){
-        this.props.removeLayer(id)
     }
 
 }

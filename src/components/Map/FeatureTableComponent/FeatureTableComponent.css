@@ -169,3 +169,16 @@
 	vertical-align: top;
 	cursor: pointer;
 }
+
+.FeatureTable__BlockUnExpander::after{
+	position: absolute;
+    content: '\f107';
+    font-family: "Font Awesome\ 5 Free";
+    font-weight: 900;
+    width: 10px;
+    height: 10px;
+    border: none;
+    margin-left: 0.3em;
+	vertical-align: top;
+	cursor: pointer;
+}

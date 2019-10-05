@@ -91,7 +91,7 @@ export default class Home extends Component {
     let droppableBelow = elemBelow.closest('.Form');
     let droppableBelowNavbarItem = elemBelow.closest('.navbar__item');
     let droppableBelowNavbarItemTitle = elemBelow.closest('.navbar__itemTitle');
-    if(droppableBelow == null && droppableBelowNavbarItem == null && droppableBelowNavbarItemTitle == null){
+    if(droppableBelow === null && droppableBelowNavbarItem === null && droppableBelowNavbarItemTitle === null){
       this.setState({show: false});
       this.setState({itemHover: "navbar__item"});
     }

@@ -181,6 +181,15 @@
   margin-top: 10px;
 }
 
+.collapsableLabelActive{
+  width: calc(100% - 20px);
+  font-size: 20px;
+  padding:5px 0 5px 20px;
+  text-align: left;
+  float: left;
+  margin-top: 10px;
+}
+
 .select__Label{
   width: calc(100% - 20px);
   font-size: 20px;
@@ -191,6 +200,11 @@
 }
 
 .collapsableLabel:hover{
+  background-color: rgba(96, 102, 114, 0.3);
+  cursor: pointer;
+}
+
+.collapsableLabelActive:hover{
   background-color: rgba(96, 102, 114, 0.3);
   cursor: pointer;
 }
@@ -210,15 +224,15 @@
 
 .collapsableLabel:before {
   font-family: 'Glyphicons Halflings';
+  content: "\25ba";
+  float: right;
+  margin: 0 20px 0 0;
+}
+.collapsableLabelActive:before {
+  font-family: 'Glyphicons Halflings';
   content: "\25bc";
   float: right;
   margin: 0 20px 0 0;
-  transition: all 0.5s;
-}
-.collapsableLabel:before.active {
- -webkit-transform: rotate(180deg);
- -moz-transform: rotate(180deg);
- transform: rotate(180deg);
 } 
 
 .WorkArea__backtext{
@@ -232,7 +246,7 @@
   width: 40%;
   max-width: 800px;
   height: auto;
-  background-color: rgba(0,0,0,0.8);
+  background-color: rgba(22, 22, 22, 0.9);
   border-radius: 10px;
   box-shadow: 0 0 30px rgba(0,0,0,0.5);
   transition: 2s left;
@@ -241,8 +255,16 @@
 }
 
 .WorkArea__ResultBottomLeft h5{
-  font-size: 16px;
-  margin: 20px 0;
+  margin: 0;
+  height: 50px;
+  border-radius: 10px 10px 0 0;
+  border: 0px solid;
+  background-color: rgba(96, 102, 114, 0.5);
+  font-size: 24px;
+  font-weight: 400;
+  vertical-align: middle;
+  line-height: 50px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
 .WorkArea__ResultBottomLeft span{
@@ -276,7 +298,8 @@
 }
 
 .ResultText__Intersect{
-  color: cyan !important;
+  color: red !important;
+  font-weight: bold;
 }
 
 .Advice__Tooltip{
@@ -298,41 +321,48 @@
   width: 100%;
 }
 
-.ResultModal tr td:last-child{
-  display: inline-flex;
-}
-
 .ResultModal tr td span{
-  padding-left: 20px;
+  text-align: center;
+  width: 100%;
 }
 
 .ResultModal tr td{
-  vertical-align: text-top;
-
+ border: solid 1px;
 }
 
 .ResultModal__PolygonVariant{
   font-size: 18px;
   font-weight: 600;
+  border: none !important;
+  padding:20px 0 0;
 }
 
 .ResultModal__Clip{
   padding-left: 20px;
+  border: none !important;
   text-decoration: underline;
+  border-collapse: inherit;
+  padding: 5px 0 5px 20px;
 }
 
 .ResultModal__Intersect{
   padding-left: 20px;
+  border: none !important;
   text-decoration: underline;
+  border-collapse: inherit;
+  padding: 5px 0 5px 20px;
 }
 
 .ResultModal__Area{
   padding-left: 20px;
+  border: none !important;
   text-decoration: underline;
+  border-collapse: inherit;
+  padding: 5px 0 5px 20px;
 }
 
 .ResultText__AreaId span:last-child{
-  color: lawngreen;
+  color: cyan;
 }
 
 .ResultText__AreaDiff span:last-child{

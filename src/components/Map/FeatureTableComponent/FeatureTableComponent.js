@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import './FeatureTableComponent.css';
 import {createFeatureLayer} from '../../../utils/Create';
+import Moment from 'react-moment';
 
 export default class FeatureTableComponent extends Component {
 	constructor(props){
@@ -17,7 +18,8 @@ export default class FeatureTableComponent extends Component {
             filteredSelectedObjects: [],
             idField: "",
             selectedLayer: false,
-            tableExpand: false
+            tableExpand: false,
+            timeFields: []
 		}
         this.closeThis = this.closeThis.bind(this);
         this.moveArrayForward= this.moveArrayForward.bind(this);
@@ -41,50 +43,52 @@ export default class FeatureTableComponent extends Component {
         this.createFeatureLayer = createFeatureLayer.bind(this);
         this.unselectObjects = this.unselectObjects.bind(this);
         this.tableBlockExpand = this.tableBlockExpand.bind(this);
+        this.parseData = this.parseData.bind(this);
     }
 
     
     componentWillMount() {
-        var idField = this.props.tableItemsFieldName.filter(field => field.type == "oid")[0]
-        this.setState({featuresList: this.props.tableShowData, filteredFeatures: this.props.tableShowData,idField: idField["alias"] }, ()=>{
+        var idField = this.props.tableItemsFieldName.filter(field => field.type === "oid")[0]
+        var timeStamps = this.props.tableItemsFieldName.filter(field => field.type === "date")
+        this.setState({featuresList: this.props.tableShowData, filteredFeatures: this.props.tableShowData,idField: idField["alias"], timeFields: timeStamps }, ()=>{
             var end = this.state.filteredFeatures.length > 100 ? 100 : this.state.filteredFeatures.length;
             this.setState({showItemsEnd: end});
         })
     }
     
     handleChangeSearch(event){
-        if(event.target.value == "" && this.state.tab == "base"){
+        if(event.target.value === "" && this.state.tab === "base"){
             this.setState({filteredFeatures: this.state.featuresList, serchValue: ""}, () => {this.setState({showItemsStart: 0, showItemsEnd: this.state.filteredFeatures.length > 100 ? 100 : this.state.filteredFeatures.length})})
         }
-        else if(event.target.value == "" && this.state.tab == "select"){
+        else if(event.target.value === "" && this.state.tab === "select"){
             this.setState({filteredSelectedObjects: this.state.selectedObjects, serchValue: ""}, () => {this.setState({showItemsStart: 0, showItemsEnd: this.state.filteredSelectedObjects.length > 100 ? 100 : this.state.filteredSelectedObjects.length})})
         }
-        else if(this.state.tab == "base"){
+        else if(this.state.tab === "base"){
             this.setState({serchValue: event.target.value});
             var filtered = this.state.featuresList.filter(feature => {
                 return Object.keys(feature.attributes).some(item => {
-                    if(typeof feature.attributes[item] == 'number'){
-                        if(feature.attributes[item] != null && feature.attributes[item] == event.target.value)
+                    if(typeof feature.attributes[item] === 'number'){
+                        if(feature.attributes[item] !== null && feature.attributes[item] === event.target.value)
                             return true;
                     }
                     else{
-                        if(feature.attributes[item] != null && feature.attributes[item].toLowerCase().includes(event.target.value.toLowerCase()))
+                        if(feature.attributes[item] !== null && feature.attributes[item].toLowerCase().includes(event.target.value.toLowerCase()))
                             return true
                     }   
                 })
               })
             this.setState({filteredFeatures: filtered}, () => {this.setState({showItemsStart: 0, showItemsEnd: this.state.filteredFeatures.length > 100 ? 100 : this.state.filteredFeatures.length})})
         }
-        else if(this.state.tab == "select"){
+        else if(this.state.tab === "select"){
             this.setState({serchValue: event.target.value});
             var filtered = this.state.selectedObjects.filter(feature => {
                 return Object.keys(feature.attributes).some(item => {
-                    if(typeof feature.attributes[item] == 'number'){
-                        if(feature.attributes[item] != null && feature.attributes[item] == event.target.value)
+                    if(typeof feature.attributes[item] === 'number'){
+                        if(feature.attributes[item] !== null && feature.attributes[item] === event.target.value)
                             return true;
                     }
                     else{
-                        if(feature.attributes[item] != null && feature.attributes[item].toLowerCase().includes(event.target.value.toLowerCase()))
+                        if(feature.attributes[item] !== null && feature.attributes[item].toLowerCase().includes(event.target.value.toLowerCase()))
                             return true
                     }   
                 })
@@ -95,9 +99,9 @@ export default class FeatureTableComponent extends Component {
 
     handleCntrlClick(event, id, item){
         event.stopPropagation();
-        if(id != undefined && item)
+        if(id !== undefined && item)
         {
-            if(event.ctrlKey && this.state.tab == "base" && !this.state.selectedObjectsIds.includes(id)) 
+            if(event.ctrlKey && this.state.tab === "base" && !this.state.selectedObjectsIds.includes(id)) 
             {            
                 this.state.selectedObjectsIds.push(id)
                 this.state.selectedObjects.push(item)
@@ -120,11 +124,11 @@ export default class FeatureTableComponent extends Component {
      }
 
     render() {
-        const list = this.state.tab == "base" ? this.state.filteredFeatures.slice(this.state.showItemsStart, this.state.showItemsEnd) : this.state.filteredSelectedObjects.slice(this.state.showItemsStart, this.state.showItemsEnd)
-        const listType = this.state.tab == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
+        const list = this.state.tab === "base" ? this.state.filteredFeatures.slice(this.state.showItemsStart, this.state.showItemsEnd) : this.state.filteredSelectedObjects.slice(this.state.showItemsStart, this.state.showItemsEnd)
+        const listType = this.state.tab === "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
         return (
         	<div className="FeatureTable__Block"> 
-                <div className="FeatureTable__BlockExpander" onClick={this.tableBlockExpand}></div>
+                <div className="expander FeatureTable__BlockExpander" onClick={this.tableBlockExpand}></div>
                 <span className="Form__Close" onClick={this.closeThis}></span>
                 <div className="FeatureTable__SearchBlock">
                     <input className="FeatureTable__SearchInput" value={this.state.serchValue} placeholder="Поиск" onChange={this.handleChangeSearch}/>
@@ -137,17 +141,23 @@ export default class FeatureTableComponent extends Component {
                         </tr>
                     </thead>
                     <tbody>
-                    {list.map((item, index) => {return <tr key={index} id={this.state.tab + item.attributes[this.state.idField]} style={{'background': this.state.selectedObjectsIds.filter(obj => obj == item.attributes[this.state.idField]).length > 0 && this.state.tab == 'base' ? 'rgba(255, 255, 255, 0.5)' : '' }} onClick={($event) => this.handleCntrlClick($event, item.attributes[this.state.idField], item)} >{Object.keys(item.attributes).map((keyName, index) => {return <td key={index}>{item.attributes[keyName]}</td>})}</tr>})}
+                    {list.map((item, index) => {return <tr key={index} id={this.state.tab + item.attributes[this.state.idField]} 
+                        style={{'background': this.state.selectedObjectsIds.filter(obj => obj === item.attributes[this.state.idField]).length > 0 
+                        && this.state.tab === 'base' ? 'rgba(255, 255, 255, 0.5)' : '' }} 
+                        onClick={($event) => this.handleCntrlClick($event, item.attributes[this.state.idField], item)} >
+                        {Object.keys(item.attributes).map((keyName, index) => {
+                            return <td key={index}>{
+                                this.state.timeFields.filter(field => field['alias'].includes(keyName)).length > 0 ? <Moment format="DD.MM.YYYY mm:HH">{item.attributes[keyName]}</Moment> : item.attributes[keyName]}</td>})}</tr>})}
                     </tbody>
                 </table>   
-                <div className="FeatureTable__CurrentTable" ref="base" style={{ 'background' : this.state.tab == "base" ? 'rgba(96, 102, 114, 0.6)' : '', 'boxShadow': this.state.tab == "base" ? 'inset 0 -1px 4px 1px white' : 'none'}} onClick={() => this.changeTab("base")}>Таблица</div>  
-                <div className="FeatureTable__SelectTable" ref="select" style={{ 'background' : this.state.tab == "select" ? 'rgba(96, 102, 114, 0.6)' : '', 'boxShadow': this.state.tab == "select" ? 'inset 0 -1px 4px 1px white' : 'none'}} onClick={() => this.changeTab("select")}>Выбранные</div> 
+                <div className="FeatureTable__CurrentTable" ref="base" style={{ 'background' : this.state.tab === "base" ? 'rgba(96, 102, 114, 0.6)' : '', 'boxShadow': this.state.tab === "base" ? 'inset 0 -1px 4px 1px white' : 'none'}} onClick={() => this.changeTab("base")}>Таблица</div>  
+                <div className="FeatureTable__SelectTable" ref="select" style={{ 'background' : this.state.tab === "select" ? 'rgba(96, 102, 114, 0.6)' : '', 'boxShadow': this.state.tab === "select" ? 'inset 0 -1px 4px 1px white' : 'none'}} onClick={() => this.changeTab("select")}>Выбранные</div> 
                 {!this.state.selectedLayer && <div className="FeatureTable__BottomButton" onClick={() => this.selectOnLayer()}>Выделить на карте</div>}
                 {this.state.selectedLayer && <div className="FeatureTable__BottomButton" onClick={() => this.unselectObjects()}>Снять выделение</div>} 
                 <div className="FeatureTable__BottomButton" onClick={() => this.downLoadCSV()}>Скачать таблицу</div>  
                 </div>
                 <div className="FeatureTable__ButtonsBlock">
-                    <span className="FeatureTable__Back" style={{visibility: this.state.showItemsStart == 0 ? 'hidden' : 'visible'}} onClick={() => this.moveArrayBack()}></span>        
+                    <span className="FeatureTable__Back" style={{visibility: this.state.showItemsStart === 0 ? 'hidden' : 'visible'}} onClick={() => this.moveArrayBack()}></span>        
                     <span className="FeatureTable__Forward" style={{visibility: listType.length > this.state.showItemsEnd ? 'visible' : 'hidden'}} onClick={() => this.moveArrayForward()}></span>       
                 </div>
             </div>
@@ -159,21 +169,23 @@ export default class FeatureTableComponent extends Component {
         if(flag){
             var elem = document.getElementsByClassName('FeatureTable__TableBlock')[0]
             elem.style.height = 'calc(100vh - 150px)';
-            var styleElem = document.head.appendChild(document.createElement("style"));
-            styleElem.innerHTML = ".FeatureTable__BlockExpander:after {content: '\\f107'}";
+            var styleElem = document.getElementsByClassName('expander')[0]
+            styleElem.classList.remove("FeatureTable__BlockExpander");
+            styleElem.classList.add("FeatureTable__BlockUnExpander");
             this.setState({tableExpand: flag})
         }
         else{
             var elem = document.getElementsByClassName('FeatureTable__TableBlock')[0]
             elem.style.height = 'calc(100% - 6px - 20px)';
-            var styleElem = document.head.appendChild(document.createElement("style"));
-            styleElem.innerHTML = ".FeatureTable__BlockExpander:after {content: '\\f106'}";
+            var styleElem = document.getElementsByClassName('expander')[0]
+            styleElem.classList.remove("FeatureTable__BlockUnExpander");
+            styleElem.classList.add("FeatureTable__BlockExpander");
             this.setState({tableExpand: flag})
         }
     }
 
     moveArrayForward(){
-        var list = this.state.tab == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
+        var list = this.state.tab === "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
         this.setState({showItemsEnd: list.length > this.state.showItemsEnd + 100 ? this.state.showItemsEnd + 100 : list.length})
         this.setState({showItemsStart: list.length > this.state.showItemsStart + 100 ? this.state.showItemsStart + 100 : 0})
     }
@@ -181,6 +193,14 @@ export default class FeatureTableComponent extends Component {
     moveArrayBack(){
         this.setState({showItemsEnd: this.state.showItemsEnd - 100 > 0 ? this.state.showItemsEnd - 100 : this.state.showItemsEnd})
         this.setState({showItemsStart: this.state.showItemsEnd - 100 > 0 ? this.state.showItemsStart - 100 : this.state.showItemsStart})
+    }
+
+    parseData(stamp){
+        var date = new Date(stamp);
+        var result;
+        date.setTime(stamp)
+        result = date.getDay() + "." + date.getMonth() + "." + date.getFullYear() + " " + date.getHours() + ":" + date.getMinutes()
+        return date
     }
 
     unselectObjects(){
@@ -193,14 +213,14 @@ export default class FeatureTableComponent extends Component {
     }
 
     selectOnLayer(){
-        if(this.state.tab == "base"){
-            this.createFeatureLayer(this.state.filteredFeatures, this.props.tableItemsFieldName.filter(field => field.type != 'geometry'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
+        if(this.state.tab === "base"){
+            this.createFeatureLayer(this.state.filteredFeatures, this.props.tableItemsFieldName.filter(field => field.type !== 'geometry'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
                 this.props.map.add(result);
                 this.setState({selectedLayer: true})
             })
         }
-        else if(this.state.tab == "select"){
-            this.createFeatureLayer(this.state.filteredSelectedObjects, this.props.tableItemsFieldName.filter(field => field.type != 'geometry'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
+        else if(this.state.tab === "select"){
+            this.createFeatureLayer(this.state.filteredSelectedObjects, this.props.tableItemsFieldName.filter(field => field.type !== 'geometry'), this.props.tableGeometryType, "PrivateSelect_object", [18,212,12]).then(result => {
                 this.props.map.add(result);
                 this.setState({selectedLayer: true})
             })
@@ -208,9 +228,9 @@ export default class FeatureTableComponent extends Component {
     }
 
     changeTab(tabId){
-        if(tabId != this.state.tab){
+        if(tabId !== this.state.tab){
             this.refs[tabId].style.background = "rgba(96, 102, 114, 0.6)";
-            var listType = tabId == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
+            var listType = tabId === "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
             this.setState({tab: tabId, showItemsStart: 0, showItemsEnd: listType.length > 100 ? 100 : listType.length});
         }
     }
@@ -218,11 +238,11 @@ export default class FeatureTableComponent extends Component {
     downLoadExcel(){    
         var json = [];        
 
-        var downloadData = this.state.tab == "base" ? this.state.featuresList : this.state.filteredFeatures
+        var downloadData = this.state.tab === "base" ? this.state.featuresList : this.state.filteredFeatures
 
         downloadData.forEach(element => {
             Object.keys(element.attributes).forEach(item => {
-                element.attributes[item] = typeof element.attributes[item] == 'number' ? element.attributes[item].toString().replace('.', ',') : element.attributes[item];
+                element.attributes[item] = typeof element.attributes[item] === 'number' ? element.attributes[item].toString().replace('.', ',') : element.attributes[item];
             }) 
             json.push(element.attributes);
         });
@@ -230,7 +250,7 @@ export default class FeatureTableComponent extends Component {
         let fs, SheetName = 'SHEET 1',
         styleID = 1;        
         
-        let respArray = typeof json != 'object' ? JSON.parse(json) : json;
+        let respArray = typeof json !== 'object' ? JSON.parse(json) : json;
         let finalDataArray = [];
         
         for (let i = 0; i < respArray.length; i++) {
@@ -393,16 +413,16 @@ export default class FeatureTableComponent extends Component {
     downLoadCSV(){
         var JSONData = [];        
 
-        var downloadData = this.state.tab == "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
+        var downloadData = this.state.tab === "base" ? this.state.filteredFeatures : this.state.filteredSelectedObjects
 
         downloadData.forEach(element => {
             Object.keys(element.attributes).forEach(item => {
-                element.attributes[item] = typeof element.attributes[item] == 'number' ? element.attributes[item].toString().replace('.', ',') : element.attributes[item];
+                element.attributes[item] = typeof element.attributes[item] === 'number' ? element.attributes[item].toString().replace('.', ',') : element.attributes[item];
             }) 
             JSONData.push(element.attributes);
         });        
 
-        var arrData = typeof JSONData != 'object' ? JSON.parse(JSONData) : JSONData;
+        var arrData = typeof JSONData !== 'object' ? JSON.parse(JSONData) : JSONData;
         
 
         var CSV = '\ufeff';
@@ -433,7 +453,7 @@ export default class FeatureTableComponent extends Component {
             CSV += row + '\r\n';
         }
 
-        if (CSV == '') {        
+        if (CSV === '') {        
             alert("Invalid data");
             return;
         }   

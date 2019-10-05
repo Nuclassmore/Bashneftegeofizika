@@ -33,7 +33,6 @@ export default class MapContainer extends Component {
             showAdviceTooltip: false,
             drawPolygonPointsCollection: [],
             selectPolygonCollection: [],
-            selectPolygonCollectionCount: 0,
             layers: [],
             graphicLayer: {},
             layerName: "",
@@ -67,6 +66,7 @@ export default class MapContainer extends Component {
         this.checkService = this.checkService.bind(this);
         this.uuidv4 = this.uuidv4.bind(this);
         this.drawGraphic = this.drawGraphic.bind(this);
+        this.handleMouseCoords = this.handleMouseCoords.bind(this)
     }  
 
     
@@ -106,17 +106,17 @@ export default class MapContainer extends Component {
         });    
     }
     
+    handleMouseCoords(){
+        if(this.state.showAdviceTooltip && this.state.map.findLayerById("GraphicLayer"))
+            this.setState({selectPolygonCollection: this.state.map.findLayerById("GraphicLayer").graphics.items})
+    }
+
     onChangeServiceLayerSelect(e){
         this.setState({selectServiceLayerValue: e.target.value, layerPath: e.target.value});
     }
 
     onChangeServiceSelect(e){
         this.setState({selectServiceValue: e.target.value}, () => this.getServicesLayer());        
-    }
-
-    componentWillUpdate(nextPrevs, nextStates){
-        if(this.state.map && this.state.map.findLayerById("GraphicLayer") && this.state.selectPolygonCollectionCount != this.state.map.findLayerById("GraphicLayer").graphics.items.length)
-            this.setState({selectPolygonCollection: this.state.map.findLayerById("GraphicLayer").graphics.items, selectPolygonCollectionCount: this.state.map.findLayerById("GraphicLayer").graphics.items.length})
     }
 
     componentDidUpdate(prevProps, prevStates){       
@@ -131,7 +131,7 @@ export default class MapContainer extends Component {
 
     render() {
         return (
-            <div className="Map">                      
+            <div className="Map" onMouseMove={this.handleMouseCoords}>                      
             	{this.state.status === "loading" && (<div className="load__page"><div className="logo__load"></div></div>)}
             	
                 <Map mapProperties={{ basemap: 'topo' }}
@@ -139,7 +139,7 @@ export default class MapContainer extends Component {
     			        onLoad={this.handleMapLoad} onDoubleClick={(evt) => this.endPolygonDraw(evt)} onClick={this.startDrawPolygon}>   
                 </Map>               
                 
-                {this.props.workToolId === "firstTool" && <SearchByPolygonTool ref={this.searchPolygonChild} drawGraphic = {(rings) => this.drawGraphic(rings)} closeForm={(id) => this.closeForm(id)} map = {this.state.map} removeGraphics = {(index, method) => this.removeGraphics(index, method)} 
+                {this.props.workToolId === "firstTool" && <SearchByPolygonTool ref={this.searchPolygonChild} drawGraphic = {(rings) => this.drawGraphic(rings)} closeForm={(id) => this.closeForm(id)} map = {this.state.map} removeGraphics = {(index) => this.removeGraphics(index)} 
                 selectPolygonCollection = {this.state.selectPolygonCollection} 
                 startDrawPolygon={(flag)=>this.startDrawPolygonTolltip(flag)} LayersList = {this.state.layers} updateLayersArray = {this.updateLayersArray}></SearchByPolygonTool>}
                 
@@ -186,7 +186,7 @@ export default class MapContainer extends Component {
                 <div className="Form__Buttons__Block"><div className="Form__button" onClick={() => this.addServiceLayer()}>Добавить сервис</div></div>
                 </div>}
 
-                {this.state.showAdviceTooltip && <div className="Advice__Tooltip">Для добавления полигона в коллекцию, нажмите на карту</div>}
+                {/* {this.state.showAdviceTooltip && <div className="Advice__Tooltip">Для добавления полигона в коллекцию, нажмите на карту</div>} */}
             </div>            
         )	    
     }      
@@ -202,6 +202,12 @@ export default class MapContainer extends Component {
                 if(!this.state.map.findLayerById('GraphicLayer')){
                     var graph = new GraphicsLayer({id: "GraphicLayer"});
                     this.state.map.add(graph);
+                }
+                else{
+                    this.state.map.remove(this.state.map.findLayerById("GraphicLayer"));
+                    var graph = new GraphicsLayer({id: "GraphicLayer"});
+                    this.state.map.add(graph);
+                    this.setState({selectPolygonCollection: []});
                 }
                 const sketch = new Sketch({
                 layer: graph,
@@ -237,6 +243,8 @@ export default class MapContainer extends Component {
         try{
             this.state.map.remove(this.state.map.findLayerById(layerId));
             this.updateLayersArray(null, null, null, layerId);
+            if(this.props.workToolId === "firstTool")
+                this.searchPolygonChild.current.removeSelectLayer(layerId, true);
         }
         catch{
             window.alert("Не удалось удалить слой")
@@ -254,7 +262,7 @@ export default class MapContainer extends Component {
           })
     }
     
-    removeGraphics(index, method){
+    removeGraphics(index){
         if(this.state.map.findLayerById("GraphicLayer") && this.state.map.findLayerById("GraphicLayer").graphics){
             this.state.map.findLayerById("GraphicLayer").graphics.remove(this.state.map.findLayerById("GraphicLayer").graphics.items[index]);
             this.setState({selectPolygonCollection: this.state.map.findLayerById("GraphicLayer").graphics.items})
@@ -287,6 +295,7 @@ export default class MapContainer extends Component {
             this.state.map.add(graph);
             this.state.map.findLayerById('GraphicLayer').graphics.add(graphic);  
         }
+        this.setState({selectPolygonCollection: this.state.map.findLayerById("GraphicLayer").graphics.items})
     })
     }
 
@@ -455,7 +464,7 @@ export default class MapContainer extends Component {
 
     startDrawPolygon(event){ 
         var widget = this.state.coordsWidget
-        var coords = "Lat/Lon " + event.mapPoint.latitude.toFixed(6) + " " + event.mapPoint.longitude.toFixed(6) +
+        var coords = "Lat/Lon " + event.mapPoint.latitude.toFixed(13) + " " + event.mapPoint.longitude.toFixed(13) +
         " | Scale 1:" + Math.round(this.state.view.scale * 1) / 1 +
         " | Zoom " + this.state.view.zoom;
         widget.innerHTML = coords;

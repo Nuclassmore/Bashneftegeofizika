@@ -3,7 +3,7 @@ import { loadModules } from '@esri/react-arcgis'
 export function createFeatureLayer(graphics, fields, geometryType, name, color = "") {
   var featureLayer 
   var result = loadModules(["esri/Graphic","esri/layers/FeatureLayer", "esri/renderers/Renderer"]).then(([Graphic, FeatureLayer, Renderer]) => {  
-        var layerColor = color == "" ? [0,217,255] : color;
+        var layerColor = color === "" ? [0,217,255] : color;
         var template = {
             title: "Информация по объекту",
             content: "{*}"
@@ -13,7 +13,7 @@ export function createFeatureLayer(graphics, fields, geometryType, name, color =
                 "type": "simple",
                 "symbol": {
                     "color": layerColor,
-                    "size": "3px",
+                    "size": "4",
                     "type": "simple-marker"
                     }
                 }   
@@ -56,7 +56,7 @@ export function createFeatureLayer(graphics, fields, geometryType, name, color =
                 "type": "simple",
                 "symbol": {
                     "color": layerColor,
-                    "width": "2px",
+                    "size": "2",
                     "type": "simple-line",
                     "style": "solid"
                   }
